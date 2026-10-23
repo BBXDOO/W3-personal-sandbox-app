@@ -1,5 +1,9 @@
 /* APK display: maximize the editor and keep the registry behind a temporary drawer. */
 @media (max-width: 767px) {
+  nav[aria-label="รายการใช้งาน"] {
+    width: 100%; min-width: 0; max-width: 100%; overflow-x: auto;
+    overflow-y: hidden; touch-action: pan-x; overscroll-behavior-x: contain;
+  }
   .workspace-region { position: relative; display: block; }
   .workspace-list-toggle {
     display: block; position: absolute; top: 8px; left: 8px; z-index: 12;
