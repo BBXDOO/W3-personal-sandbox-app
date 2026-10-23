@@ -1,18 +1,33 @@
-/* APK display: keep the editor list and details visible together on a phone. */
+/* APK display: maximize the editor and keep the registry behind a temporary drawer. */
 @media (max-width: 767px) {
-  .workspace-region {
-    flex-direction: row;
+  .workspace-region { position: relative; display: block; }
+  .workspace-list-toggle {
+    display: block; position: absolute; top: 8px; left: 8px; z-index: 12;
+    padding: 8px 14px; border-radius: 12px; border: 1px solid var(--border);
+    background: var(--surface-2); color: var(--text); font-weight: 800;
   }
+  .workspace-list-backdrop { position: absolute; inset: 0; z-index: 13; background: rgba(0,0,0,.5); }
   .workspace-list {
-    flex: 0 0 31%;
-    width: 31%;
-    height: 100%;
-    border-bottom: 0;
-    border-right: 1px solid rgba(76, 142, 112, .3);
+    display: none; position: absolute; z-index: 14; top: 0; bottom: 0; left: 0;
+    width: min(75%, 320px); height: 100%; background: var(--surface-2);
+    border-right: 1px solid var(--border); box-shadow: 16px 0 32px rgba(0,0,0,.55);
   }
-  .workspace-detail {
-    flex: 1 1 69%;
-    width: 69%;
-    height: 100%;
-  }
+  .workspace-list.workspace-list-open { display: block; }
+  .workspace-detail { width: 100%; height: 100%; padding-top: 44px; }
+  .workspace-detail .p-8, .workspace-detail .p-10 { padding: 14px; }
+  .workspace-detail .p-6, .workspace-detail .p-5 { padding: 12px; }
+  .workspace-detail .gap-8, .workspace-detail .gap-10 { gap: 12px; }
+  .workspace-detail .gap-6, .workspace-detail .gap-5 { gap: 10px; }
+  .workspace-detail .pb-32 { padding-bottom: 16px; }
+  .workspace-output-wide { left: 2px; right: 2px; bottom: 2px; border-radius: 10px; }
+  .workspace-divider-wide { left: 2px; right: 2px; }
+  .workspace-output .p-10, .workspace-output .p-8 { padding: 12px; }
+  .workspace-output .p-6, .workspace-output .p-5, .workspace-output .p-4 { padding: 8px; }
+  .workspace-output .gap-10, .workspace-output .gap-8 { gap: 12px; }
+  .workspace-output .gap-6, .workspace-output .gap-5, .workspace-output .gap-4 { gap: 8px; }
+  .workspace-output .mt-6, .workspace-output .mt-8 { margin-top: 8px; }
+  .workspace-output .mb-6, .workspace-output .mb-8 { margin-bottom: 8px; }
+  .workspace-output .text-5xl { font-size: 1.75rem; line-height: 1.15; }
+  .workspace-output .text-4xl { font-size: 1.5rem; line-height: 1.15; }
+  .workspace-output .tracking-\[0\.4em\] { letter-spacing: .15em; }
 }
