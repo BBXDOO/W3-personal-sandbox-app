@@ -1,0 +1,10 @@
+/* APK display: keep the editor list and details visible together on a phone. */
+@media (max-width: 767px) {
+  .workspace-region { flex-direction: row; }
+  .workspace-list {
+    flex: 0 0 31%; width: 31%; height: 100%;
+    border-bottom: 0;
+    border-right: 1px solid rgba(76, 142, 112, .3);
+  }
+  .workspace-detail { flex: 1 1 69%; width: 69%; height: 100%; }
+}
