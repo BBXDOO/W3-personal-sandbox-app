@@ -1,4 +1,4 @@
-W3 Personal Sandbox — โครงการสร้างแอป Android จาก v32
+W3 Personal Sandbox — โครงการสร้างแอป Android สำหรับทดสอบ v38
 
 ไฟล์เว็บใน app/src/main/assets/www อยู่ใน APK เปิดได้โดยไม่ต้องใช้ Termux หรือเซิร์ฟเวอร์
 ข้อมูลแต่ละเครื่องเก็บในพื้นที่แอปของ Android เครื่องนั้น
@@ -14,7 +14,7 @@ W3 Personal Sandbox — โครงการสร้างแอป Android �
 2. อัปโหลดเนื้อหาในโฟลเดอร์ android-app ไปที่รากของรีโปใหม่
    ให้เห็น app/, build.gradle, settings.gradle และ .github/workflows/build-apk.yml
 3. เปิดแท็บ Actions > Build W3 Sandbox APK > Run workflow
-4. เมื่อสำเร็จ ดาวน์โหลด Artifact ชื่อ W3-Sandbox-v32-test-APK
+4. เมื่อสำเร็จ ดาวน์โหลด Artifact ที่ workflow สร้าง (ชื่ออาจระบุรุ่นทดสอบก่อนหน้า)
 5. แตก ZIP ของ Artifact แล้วเปิด app-debug.apk เพื่อติดตั้งทดสอบ
 
 ห้ามใช้ APK ทดสอบนี้เป็นรุ่นแจกจริง เพราะ GitHub สร้างกุญแจ debug ใหม่
@@ -28,6 +28,5 @@ APK ทดสอบติดตั้งได้ แต่หากจะแจ
 จากนั้นเปิด APK > หน้าโครงการ > นำเข้าไฟล์ JSON
 ข้อมูลของ Chrome จะไม่ย้ายเข้า APK อัตโนมัติ
 
-ข้อจำกัด: นี่คือ source project สำหรับสร้าง APK ยังไม่ใช่ไฟล์ APK
-เครื่องที่จัดทำไม่มี Android SDK และดาวน์โหลดจากคลัง Android ไม่ได้
-จึงยังไม่ได้ build หรือติดตั้งทดสอบบนโทรศัพท์
+ข้อจำกัด: นี่คือ source project สำหรับสร้าง APK ทดสอบ
+รุ่น v38 เพิ่มตัวจัดรูปแบบเนื้อหา ปุ่มคำสั่งในแอป และภาพพื้นพื้นที่ทำงาน ต้องตรวจการใช้งานจริงบนโทรศัพท์หลังติดตั้ง
