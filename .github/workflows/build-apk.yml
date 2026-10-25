@@ -5,6 +5,14 @@ on:
     branches:
       - refactor/v0.2
   workflow_dispatch:
+    inputs:
+      package_type:
+        description: 'APK type (release needs four W3_RELEASE_* secrets)'
+        type: choice
+        options:
+          - debug
+          - release
+        default: debug
 
 permissions:
   contents: read
@@ -25,11 +33,40 @@ jobs:
         with:
           gradle-version: '8.9'
       - name: Build test APK
+        if: github.event_name != 'workflow_dispatch' || inputs.package_type == 'debug'
         run: gradle --no-daemon :app:assembleDebug
       - name: Check APK archive
+        if: github.event_name != 'workflow_dispatch' || inputs.package_type == 'debug'
         run: unzip -t app/build/outputs/apk/debug/app-debug.apk
       - uses: actions/upload-artifact@v4
+        if: github.event_name != 'workflow_dispatch' || inputs.package_type == 'debug'
         with:
           name: W3-Sandbox-v40-compact-scrollable-library-APK
           path: app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+      - name: Build owner-signed release APK
+        if: github.event_name == 'workflow_dispatch' && inputs.package_type == 'release'
+        env:
+          W3_KEYSTORE_BASE64: ${{ secrets.W3_RELEASE_KEYSTORE_BASE64 }}
+          W3_RELEASE_STORE_PASSWORD: ${{ secrets.W3_RELEASE_STORE_PASSWORD }}
+          W3_RELEASE_KEY_ALIAS: ${{ secrets.W3_RELEASE_KEY_ALIAS }}
+          W3_RELEASE_KEY_PASSWORD: ${{ secrets.W3_RELEASE_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          if [[ -z "$W3_KEYSTORE_BASE64" || -z "$W3_RELEASE_STORE_PASSWORD" || -z "$W3_RELEASE_KEY_ALIAS" || -z "$W3_RELEASE_KEY_PASSWORD" ]]; then
+            echo 'Release signing secrets are missing.' >&2
+            exit 1
+          fi
+          W3_RELEASE_KEYSTORE_FILE="$(mktemp)"
+          trap 'rm -f "$W3_RELEASE_KEYSTORE_FILE"' EXIT
+          printf '%s' "$W3_KEYSTORE_BASE64" | base64 --decode > "$W3_RELEASE_KEYSTORE_FILE"
+          export W3_RELEASE_KEYSTORE_FILE
+          gradle --no-daemon :app:assembleRelease
+          unzip -t app/build/outputs/apk/release/app-release.apk
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose app/build/outputs/apk/release/app-release.apk
+      - uses: actions/upload-artifact@v4
+        if: github.event_name == 'workflow_dispatch' && inputs.package_type == 'release'
+        with:
+          name: W3-Sandbox-v40-owner-signed-release-APK
+          path: app/build/outputs/apk/release/app-release.apk
           if-no-files-found: error

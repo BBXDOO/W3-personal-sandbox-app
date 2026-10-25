@@ -30,3 +30,26 @@ APK ทดสอบติดตั้งได้ แต่หากจะแจ
 
 ข้อจำกัด: นี่คือ source project สำหรับสร้าง APK ทดสอบ
 รุ่น v40 แก้หน้าแรกให้เลื่อนลงได้และย่อการ์ดโครงการ ต้องตรวจการใช้งานจริงบนโทรศัพท์หลังติดตั้ง
+
+Release APK สำหรับใช้ส่วนตัว (เจ้าของถือกุญแจเอง):
+1. ใน Termux ติดตั้ง OpenJDK: pkg install openjdk-17
+2. สร้างกุญแจเพียงครั้งเดียวในพื้นที่ส่วนตัวของเครื่อง:
+   keytool -genkeypair -v -keystore ~/w3-personal-release.jks -alias w3personal -keyalg RSA -keysize 3072 -validity 10000
+   ตั้งรหัสผ่านและจดเก็บอย่างปลอดภัย อย่าส่งไฟล์ .jks หรือรหัสผ่านทางแชท/ใส่ในรีโป
+3. สำรองไฟล์ .jks และรหัสผ่านแยกจากโทรศัพท์ หากหาย จะอัปเดตแอปเดิมด้วยกุญแจเดิมไม่ได้
+4. ในรีโป Android GitHub > Settings > Secrets and variables > Actions เพิ่ม secrets สี่ค่า:
+   W3_RELEASE_KEYSTORE_BASE64 = ผลของคำสั่ง base64 -w 0 ~/w3-personal-release.jks
+   W3_RELEASE_STORE_PASSWORD = รหัสผ่าน keystore
+   W3_RELEASE_KEY_ALIAS = w3personal
+   W3_RELEASE_KEY_PASSWORD = รหัสผ่าน key (หากใช้รหัสเดียวกันให้ใส่ค่าเดียวกัน)
+   คัดลอก base64 เข้าช่อง secret โดยตรง อย่าพิมพ์ผลลงในแชทหรือ commit ลง Git
+5. Actions > Build W3 Sandbox APK > Run workflow > package_type: release
+   ดาวน์โหลด Artifact แล้วตรวจว่าได้ app-release.apk
+6. ถ้าเครื่องติดตั้ง app-debug.apk อยู่: เปิดแอปเดิมและ Export JSON ก่อน
+   ตรวจว่าไฟล์ JSON มีข้อมูล จากนั้นถอนการติดตั้ง Debug แล้วติดตั้ง Release และ Import JSON
+   การถอนติดตั้งจะลบข้อมูลเฉพาะในแอปเดิม จึงต้องมีไฟล์สำรองก่อน
+7. การอัปเดตครั้งถัดไป: เพิ่ม versionCode และสร้าง Release ด้วยกุญแจชุดเดิม
+   ติดตั้งทับ Release เดิม แล้วตรวจว่าข้อมูลยังอยู่ (ทดสอบกับข้อมูลตัวอย่างก่อน)
+
+หมายเหตุ: การตั้ง GitHub Secrets ต้องทำโดยเจ้าของบัญชี ห้ามเผยแพร่ไฟล์กุญแจ
+การมี workflow รองรับ Release ไม่ได้สร้างกุญแจหรือเปลี่ยน APK ที่ติดตั้งอยู่โดยอัตโนมัติ

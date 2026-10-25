@@ -1,5 +1,11 @@
 plugins { id 'com.android.application' }
 
+def releaseKeystore = System.getenv('W3_RELEASE_KEYSTORE_FILE')
+def releaseStorePassword = System.getenv('W3_RELEASE_STORE_PASSWORD')
+def releaseKeyAlias = System.getenv('W3_RELEASE_KEY_ALIAS')
+def releaseKeyPassword = System.getenv('W3_RELEASE_KEY_PASSWORD')
+def hasReleaseSigning = [releaseKeystore, releaseStorePassword, releaseKeyAlias, releaseKeyPassword].every { it != null && !it.isEmpty() }
+
 android {
     namespace 'com.w3personalsandbox.app'
     compileSdk 35
@@ -12,8 +18,21 @@ android {
         versionName '0.40'
     }
 
+    if (hasReleaseSigning) {
+        signingConfigs {
+            personalRelease {
+                storeFile file(releaseKeystore)
+                storePassword releaseStorePassword
+                keyAlias releaseKeyAlias
+                keyPassword releaseKeyPassword
+            }
+        }
+    }
     buildTypes {
-        release { minifyEnabled false }
+        release {
+            minifyEnabled false
+            if (hasReleaseSigning) signingConfig signingConfigs.personalRelease
+        }
     }
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
