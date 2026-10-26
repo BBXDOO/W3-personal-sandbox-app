@@ -13,9 +13,13 @@ on:
           - debug
           - release
         default: debug
+      publish_release:
+        description: 'Publish signed APK as latest GitHub Release for in-app updates'
+        type: boolean
+        default: false
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build:
@@ -33,19 +37,19 @@ jobs:
         with:
           gradle-version: '8.9'
       - name: Build test APK
-        if: (github.event_name == 'workflow_dispatch' && inputs.package_type == 'debug') || (github.event_name == 'push' && github.event.head_commit.message != 'Build owner-signed v42 formatting fix')
+        if: (github.event_name == 'workflow_dispatch' && inputs.package_type == 'debug') || (github.event_name == 'push' && !startsWith(github.event.head_commit.message, 'Publish owner-signed v'))
         run: gradle --no-daemon :app:assembleDebug
       - name: Check APK archive
-        if: (github.event_name == 'workflow_dispatch' && inputs.package_type == 'debug') || (github.event_name == 'push' && github.event.head_commit.message != 'Build owner-signed v42 formatting fix')
+        if: (github.event_name == 'workflow_dispatch' && inputs.package_type == 'debug') || (github.event_name == 'push' && !startsWith(github.event.head_commit.message, 'Publish owner-signed v'))
         run: unzip -t app/build/outputs/apk/debug/app-debug.apk
       - uses: actions/upload-artifact@v4
-        if: (github.event_name == 'workflow_dispatch' && inputs.package_type == 'debug') || (github.event_name == 'push' && github.event.head_commit.message != 'Build owner-signed v42 formatting fix')
+        if: (github.event_name == 'workflow_dispatch' && inputs.package_type == 'debug') || (github.event_name == 'push' && !startsWith(github.event.head_commit.message, 'Publish owner-signed v'))
         with:
-          name: W3-Sandbox-v40-compact-scrollable-library-APK
+          name: W3-Sandbox-debug-APK
           path: app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
       - name: Build owner-signed release APK
-        if: (github.event_name == 'workflow_dispatch' && inputs.package_type == 'release') || (github.event_name == 'push' && github.event.head_commit.message == 'Build owner-signed v42 formatting fix')
+        if: (github.event_name == 'workflow_dispatch' && inputs.package_type == 'release') || (github.event_name == 'push' && startsWith(github.event.head_commit.message, 'Publish owner-signed v'))
         env:
           W3_KEYSTORE_BASE64: ${{ secrets.W3_RELEASE_KEYSTORE_BASE64 }}
           W3_RELEASE_STORE_PASSWORD: ${{ secrets.W3_RELEASE_STORE_PASSWORD }}
@@ -65,8 +69,25 @@ jobs:
           unzip -t app/build/outputs/apk/release/app-release.apk
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose app/build/outputs/apk/release/app-release.apk
       - uses: actions/upload-artifact@v4
-        if: (github.event_name == 'workflow_dispatch' && inputs.package_type == 'release') || (github.event_name == 'push' && github.event.head_commit.message == 'Build owner-signed v42 formatting fix')
+        if: (github.event_name == 'workflow_dispatch' && inputs.package_type == 'release') || (github.event_name == 'push' && startsWith(github.event.head_commit.message, 'Publish owner-signed v'))
         with:
           name: W3-Sandbox-owner-signed-release-APK
           path: app/build/outputs/apk/release/app-release.apk
           if-no-files-found: error
+
+      - name: Publish APK for in-app updates
+        if: (github.event_name == 'push' && startsWith(github.event.head_commit.message, 'Publish owner-signed v')) || (github.event_name == 'workflow_dispatch' && inputs.package_type == 'release' && inputs.publish_release)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          VERSION_CODE="$(awk '$1 == "versionCode" {print $2; exit}' app/build.gradle)"
+          test -n "$VERSION_CODE"
+          TAG="v$VERSION_CODE"
+          APK="app/build/outputs/apk/release/app-release.apk"
+          test -s "$APK"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" "$APK#W3-Personal-Sandbox-$TAG.apk" --clobber
+          else
+            gh release create "$TAG" "$APK#W3-Personal-Sandbox-$TAG.apk" --target "$GITHUB_SHA" --title "W3 Personal Sandbox $TAG" --notes "อัปเดต APK ส่วนตัว: ตรวจรุ่น ดาวน์โหลด และให้ Android ยืนยันติดตั้ง"
+          fi

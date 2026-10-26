@@ -18,5 +18,33 @@
 </head>
 <body>
     <div id="root"></div>
+    <script>
+      document.addEventListener('DOMContentLoaded', function () {
+        function addUpdateButton() {
+          if (document.getElementById('w3-check-update')) return;
+          var exportButton = Array.from(document.querySelectorAll('button'))
+            .find(function (button) { return button.textContent.includes('EXPORT DATA'); });
+          if (!exportButton || !exportButton.parentElement) return;
+          var button = document.createElement('button');
+          button.id = 'w3-check-update';
+          button.type = 'button';
+          button.textContent = '⬆ อัปเดต';
+          button.setAttribute('aria-label', 'ตรวจอัปเดตแอป');
+          button.title = 'ตรวจอัปเดต Personal Sandbox';
+          button.style.cssText = 'flex-shrink:0;border:1px solid #366b59;border-radius:16px;background:#20342b;color:#b8f5d9;padding:9px;font-size:10px;font-weight:700;white-space:nowrap';
+          button.addEventListener('click', function () {
+            if (window.AndroidBridge && window.AndroidBridge.checkUpdate) {
+              window.AndroidBridge.checkUpdate();
+            } else {
+              alert('ปุ่มอัปเดตใช้ได้ในแอป Android');
+            }
+          });
+          exportButton.parentElement.insertBefore(button, exportButton);
+        }
+        new MutationObserver(addUpdateButton).observe(document.getElementById('root'), {childList:true,subtree:true});
+        addUpdateButton();
+      });
+    </script>
+
 </body>
 </html>
