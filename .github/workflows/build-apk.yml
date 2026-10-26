@@ -33,19 +33,19 @@ jobs:
         with:
           gradle-version: '8.9'
       - name: Build test APK
-        if: (github.event_name == 'workflow_dispatch' && inputs.package_type == 'debug') || (github.event_name == 'push' && github.event.head_commit.message != 'Build owner-signed v41 update test')
+        if: (github.event_name == 'workflow_dispatch' && inputs.package_type == 'debug') || (github.event_name == 'push' && github.event.head_commit.message != 'Build owner-signed v42 formatting fix')
         run: gradle --no-daemon :app:assembleDebug
       - name: Check APK archive
-        if: (github.event_name == 'workflow_dispatch' && inputs.package_type == 'debug') || (github.event_name == 'push' && github.event.head_commit.message != 'Build owner-signed v41 update test')
+        if: (github.event_name == 'workflow_dispatch' && inputs.package_type == 'debug') || (github.event_name == 'push' && github.event.head_commit.message != 'Build owner-signed v42 formatting fix')
         run: unzip -t app/build/outputs/apk/debug/app-debug.apk
       - uses: actions/upload-artifact@v4
-        if: (github.event_name == 'workflow_dispatch' && inputs.package_type == 'debug') || (github.event_name == 'push' && github.event.head_commit.message != 'Build owner-signed v41 update test')
+        if: (github.event_name == 'workflow_dispatch' && inputs.package_type == 'debug') || (github.event_name == 'push' && github.event.head_commit.message != 'Build owner-signed v42 formatting fix')
         with:
           name: W3-Sandbox-v40-compact-scrollable-library-APK
           path: app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
       - name: Build owner-signed release APK
-        if: (github.event_name == 'workflow_dispatch' && inputs.package_type == 'release') || (github.event_name == 'push' && github.event.head_commit.message == 'Build owner-signed v41 update test')
+        if: (github.event_name == 'workflow_dispatch' && inputs.package_type == 'release') || (github.event_name == 'push' && github.event.head_commit.message == 'Build owner-signed v42 formatting fix')
         env:
           W3_KEYSTORE_BASE64: ${{ secrets.W3_RELEASE_KEYSTORE_BASE64 }}
           W3_RELEASE_STORE_PASSWORD: ${{ secrets.W3_RELEASE_STORE_PASSWORD }}
@@ -65,7 +65,7 @@ jobs:
           unzip -t app/build/outputs/apk/release/app-release.apk
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose app/build/outputs/apk/release/app-release.apk
       - uses: actions/upload-artifact@v4
-        if: (github.event_name == 'workflow_dispatch' && inputs.package_type == 'release') || (github.event_name == 'push' && github.event.head_commit.message == 'Build owner-signed v41 update test')
+        if: (github.event_name == 'workflow_dispatch' && inputs.package_type == 'release') || (github.event_name == 'push' && github.event.head_commit.message == 'Build owner-signed v42 formatting fix')
         with:
           name: W3-Sandbox-owner-signed-release-APK
           path: app/build/outputs/apk/release/app-release.apk
