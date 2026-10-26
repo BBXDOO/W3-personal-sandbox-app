@@ -121,6 +121,13 @@ public class MainActivity extends Activity {
     }
 
 
+    private long currentVersion() {
+        try {
+            PackageInfo info = getPackageManager().getPackageInfo(getPackageName(), 0);
+            return Build.VERSION.SDK_INT >= 28 ? info.getLongVersionCode() : info.versionCode;
+        } catch (Exception ignored) { return -1; }
+    }
+
     private void showUpdateMessage(String text) {
         runOnUiThread(() -> {
             if (!isFinishing()) new AlertDialog.Builder(this)
@@ -159,8 +166,8 @@ public class MainActivity extends Activity {
             String tag = release.getString("tag_name");
             if (!tag.matches("v[0-9]+")) throw new IllegalStateException("Invalid release tag");
             int version = Integer.parseInt(tag.substring(1));
-            if (version <= BuildConfig.VERSION_CODE) {
-                showUpdateMessage("รุ่นนี้เป็นรุ่นล่าสุดแล้ว (v" + BuildConfig.VERSION_CODE + ")");
+            if (version <= currentVersion()) {
+                showUpdateMessage("รุ่นนี้เป็นรุ่นล่าสุดแล้ว (v" + currentVersion() + ")");
                 return;
             }
             JSONArray assets = release.getJSONArray("assets");
@@ -176,7 +183,7 @@ public class MainActivity extends Activity {
                 throw new IllegalStateException("Invalid update asset");
             String notes = release.optString("body", "").trim();
             if (notes.length() > 500) notes = notes.substring(0, 500) + "…";
-            final String message = "มีรุ่น " + tag + " (ปัจจุบัน v" + BuildConfig.VERSION_CODE + ")\n\n"
+            final String message = "มีรุ่น " + tag + " (ปัจจุบัน v" + currentVersion() + ")\n\n"
                 + notes + "\n\nควรส่งออก JSON สำรองก่อนติดตั้ง";
             runOnUiThread(() -> {
                 if (!isFinishing()) new AlertDialog.Builder(this).setTitle("พบอัปเดต")
