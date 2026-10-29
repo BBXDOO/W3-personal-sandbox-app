@@ -1,17 +1,17 @@
 #!/usr/bin/env sh
 set -eu
-cd "$(dirname "$0")/.."
-npm run build
-rm -rf android-app/app/src/main/assets/www
-mkdir -p android-app/app/src/main/assets/www
-cp -R dist/. android-app/app/src/main/assets/www/
-cp android-app/compact.css android-app/app/src/main/assets/www/compact.css
-python3 - <<'PY'
+APP_ROOT=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+WEB_SOURCE=${1:?Pass the Personal Sandbox web source directory}
+WEB_SOURCE=$(CDPATH= cd -- "$WEB_SOURCE" && pwd)
+(cd "$WEB_SOURCE" && npm run build)
+python3 - "$WEB_SOURCE" "$APP_ROOT" <<'PYTHON'
 from pathlib import Path
-path = Path('android-app/app/src/main/assets/www/index.html')
-html = path.read_text()
-html = html.replace('width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover', 'width=640, viewport-fit=cover')
-html = html.replace('</head>', '  <link rel="stylesheet" href="./compact.css">\n</head>')
-path.write_text(html)
-PY
-echo "Android web assets updated."
+import shutil, sys
+source, app = map(Path, sys.argv[1:])
+target = app / 'app/src/main/assets/www'
+shutil.rmtree(target)
+shutil.copytree(source / 'dist', target)
+shutil.copy(app / 'compact.css', target / 'compact.css')
+index = target / 'index.html'
+index.write_text(index.read_text().replace('</head>', '<link rel="stylesheet" href="./compact.css">\n</head>'))
+PYTHON
