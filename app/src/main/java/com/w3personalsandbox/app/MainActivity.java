@@ -40,6 +40,7 @@ public class MainActivity extends Activity {
     private WebView webView;
     private ValueCallback<Uri[]> fileCallback;
     private byte[] pendingExport;
+    private boolean storyWriterOpen;
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
@@ -105,19 +106,44 @@ public class MainActivity extends Activity {
     private class ExportBridge {
         @JavascriptInterface public void checkUpdate() { new Thread(MainActivity.this::checkForUpdate).start(); }
         @JavascriptInterface public void saveJson(String name, String contents) {
+            saveDocument(name, contents, "application/json");
+        }
+        @JavascriptInterface public void saveText(String name, String contents, String mime) {
+            if (!"text/markdown".equals(mime) && !"text/plain".equals(mime)) return;
+            saveDocument(name, contents, mime);
+        }
+        @JavascriptInterface public void setWriterOpen(boolean open) {
+            runOnUiThread(() -> storyWriterOpen = open);
+        }
+        @JavascriptInterface public void openExternal(String address) {
             runOnUiThread(() -> {
-                pendingExport = contents.getBytes(StandardCharsets.UTF_8);
-                Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
-                intent.addCategory(Intent.CATEGORY_OPENABLE);
-                intent.setType("application/json");
-                intent.putExtra(Intent.EXTRA_TITLE, name);
-                try { startActivityForResult(intent, SAVE_FILE); }
-                catch (Exception e) {
-                    pendingExport = null;
-                    Toast.makeText(MainActivity.this, "เปิดหน้าบันทึกไฟล์ไม่ได้", Toast.LENGTH_SHORT).show();
-                }
+                try {
+                    Uri uri = Uri.parse(address);
+                    String scheme = uri.getScheme();
+                    if (!"https".equalsIgnoreCase(scheme) && !"http".equalsIgnoreCase(scheme) && !"mailto".equalsIgnoreCase(scheme)) return;
+                    startActivity(new Intent(Intent.ACTION_VIEW, uri));
+                } catch (Exception e) { Toast.makeText(MainActivity.this, "เปิดลิงก์ไม่สำเร็จ", Toast.LENGTH_SHORT).show(); }
             });
         }
+    }
+
+    private void saveDocument(String name, String contents, String mime) {
+        runOnUiThread(() -> {
+            if (pendingExport != null) {
+                Toast.makeText(this, "มีหน้าบันทึกไฟล์เปิดอยู่แล้ว", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            pendingExport = contents.getBytes(StandardCharsets.UTF_8);
+            Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
+            intent.addCategory(Intent.CATEGORY_OPENABLE);
+            intent.setType(mime);
+            intent.putExtra(Intent.EXTRA_TITLE, name);
+            try { startActivityForResult(intent, SAVE_FILE); }
+            catch (Exception e) {
+                pendingExport = null;
+                Toast.makeText(this, "เปิดหน้าบันทึกไฟล์ไม่ได้", Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 
 
@@ -262,7 +288,7 @@ public class MainActivity extends Activity {
                 try (OutputStream output = getContentResolver().openOutputStream(data.getData())) {
                     if (output == null) throw new IllegalStateException("No output stream");
                     output.write(pendingExport);
-                    Toast.makeText(this, "บันทึกไฟล์สำรองแล้ว", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(this, "บันทึกไฟล์แล้ว", Toast.LENGTH_SHORT).show();
                 } catch (Exception e) {
                     Toast.makeText(this, "บันทึกไฟล์ไม่สำเร็จ", Toast.LENGTH_LONG).show();
                 }
@@ -272,6 +298,7 @@ public class MainActivity extends Activity {
     }
 
     @Override public void onBackPressed() {
+        if (storyWriterOpen) { webView.evaluateJavascript("window.dispatchEvent(new Event('w3-story-back'));", null); return; }
         if (webView.canGoBack()) webView.goBack();
         else super.onBackPressed();
     }
