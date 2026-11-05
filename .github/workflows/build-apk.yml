@@ -26,6 +26,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Verify bundled manual matches APK
+        run: python3 check-release.py
       - uses: actions/setup-java@v4
         with:
           distribution: temurin

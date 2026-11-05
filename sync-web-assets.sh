@@ -15,3 +15,6 @@ shutil.copy(app / 'compact.css', target / 'compact.css')
 index = target / 'index.html'
 index.write_text(index.read_text().replace('</head>', '<link rel="stylesheet" href="./compact.css">\n</head>'))
 PYTHON
+
+cp "$WEB_SOURCE/docs/คู่มือใช้งานภาษาไทย.md" "$APP_ROOT/USER_GUIDE_TH.md"
+python3 "$APP_ROOT/check-release.py"
