@@ -1,3 +1,38 @@
 /* Android uses the same responsive design as the authoring source. */
 body { padding: 0; }
 .editor-shell { padding-bottom: env(safe-area-inset-bottom, 0px); }
+
+/*
+ * Mobile board workspace: preserve the existing editor/preview split and
+ * board state, but let the coordinate grid retain usable touch space.
+ * Scoped to the board preview only; other project modes are unaffected.
+ */
+@media (max-width: 700px) {
+  .workspace-output-content:has(.board-workspace) {
+    overscroll-behavior-y: contain;
+  }
+  .workspace-output-content .board-workspace {
+    height: auto;
+    min-height: 100%;
+  }
+  .workspace-output-content .board-workspace-columns {
+    flex: none;
+    min-height: 290px;
+    grid-template-rows: minmax(240px, auto) auto;
+  }
+  .workspace-output-content .board-grid-viewport {
+    min-height: 200px;
+    max-height: min(54dvh, 460px);
+    touch-action: pan-x pan-y;
+    overscroll-behavior: contain;
+  }
+  .workspace-output-content .board-grid-controls {
+    row-gap: 8px;
+  }
+  .workspace-output-content .board-grid-controls button,
+  .workspace-output-content .board-inspector summary,
+  .workspace-output-content .board-table-theme summary,
+  .workspace-output-content .board-tile-library summary {
+    min-height: 36px;
+  }
+}
