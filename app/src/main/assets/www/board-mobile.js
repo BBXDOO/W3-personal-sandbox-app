@@ -30,7 +30,11 @@
     root.insertBefore(nav, root.querySelector('.board-workspace-columns'));
     activate(root, 'grid');
   };
-  const refresh = () => document.querySelectorAll('.board-workspace').forEach(enhance);
+  const refresh = () => {
+    const roots = [...document.querySelectorAll('.board-workspace')];
+    if (!roots.some(root => root.classList.contains('board-mobile-full'))) document.body.classList.remove('board-mobile-full-active');
+    roots.forEach(enhance);
+  };
   new MutationObserver(refresh).observe(document.documentElement, {childList:true,subtree:true});
   mq.addEventListener('change', refresh);
   refresh();
