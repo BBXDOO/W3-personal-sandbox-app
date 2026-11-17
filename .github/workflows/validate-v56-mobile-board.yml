@@ -7,12 +7,12 @@ permissions:
   contents: write
 jobs:
   build-v56-debug:
-    if: github.head_ref == 'feature/v056-mobile-board-apk' || github.ref_name == 'feature/v056-mobile-board-apk'
+    if: github.head_ref == 'fix/v056-mobile-board-overflow' || github.ref_name == 'fix/v056-mobile-board-overflow'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: feature/v056-mobile-board-apk
+          ref: fix/v056-mobile-board-overflow
           persist-credentials: true
       - uses: actions/checkout@v4
         with:
@@ -40,15 +40,16 @@ jobs:
           git add app/src/main/assets/www USER_GUIDE_TH.md
           if ! git diff --cached --quiet; then
             git commit -m "Bundle validated v56 mobile board web assets"
-            git push origin HEAD:feature/v056-mobile-board-apk
+            git push origin HEAD:fix/v056-mobile-board-overflow
           fi
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
-      - uses: android-actions/setup-android@v4
-        with:
-          packages: 'platform-tools platforms;android-35 build-tools;35.0.0'
+      - name: Verify preinstalled Android SDK
+        run: |
+          test -d "$ANDROID_HOME/platforms/android-35"
+          test -x "$ANDROID_HOME/build-tools/35.0.0/apksigner"
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.9'
