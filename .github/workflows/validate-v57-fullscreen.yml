@@ -7,12 +7,12 @@ permissions:
   contents: write
 jobs:
   build-v57-debug:
-    if: github.head_ref == 'fix/v057-mobile-board-overflow' || github.ref_name == 'fix/v057-mobile-board-overflow'
+    if: github.head_ref == 'release/v057-board-fullscreen' || github.ref_name == 'release/v057-board-fullscreen'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: fix/v057-mobile-board-overflow
+          ref: release/v057-board-fullscreen
           persist-credentials: true
       - uses: actions/checkout@v4
         with:
@@ -40,7 +40,7 @@ jobs:
           git add app/src/main/assets/www USER_GUIDE_TH.md
           if ! git diff --cached --quiet; then
             git commit -m "Bundle validated v57 mobile board web assets"
-            git push origin HEAD:fix/v057-mobile-board-overflow
+            git push origin HEAD:release/v057-board-fullscreen
           fi
       - uses: actions/setup-java@v4
         with:
