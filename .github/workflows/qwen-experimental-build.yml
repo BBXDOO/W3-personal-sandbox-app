@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - feature/ai-workspace-tool-bridge
+      - feature/qw2-integrated-prototype
   workflow_dispatch:
 permissions:
   contents: read
@@ -26,6 +27,6 @@ jobs:
         run: unzip -t app/build/outputs/apk/debug/app-debug.apk
       - uses: actions/upload-artifact@v4
         with:
-          name: W3-Qwen-Workspace-experimental-debug-APK
+          name: QW2-integrated-debug-APK
           path: app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
