@@ -3,7 +3,7 @@
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
     <application android:allowBackup="false" android:label="W3 Personal Sandbox"
         android:theme="@style/W3Theme"
-        android:usesCleartextTraffic="false">
+        android:usesCleartextTraffic="false" android:networkSecurityConfig="@xml/qwen_network_security">
         <activity android:name=".MainActivity" android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
