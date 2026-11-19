@@ -1,3 +1,25 @@
-/* Android uses the same responsive design as the authoring source. */
-body { padding: 0; }
-.editor-shell { padding-bottom: env(safe-area-inset-bottom, 0px); }
+/* Mobile board navigation. Scope to board only; no storage/schema changes. */
+@media(max-width:700px){
+.workspace-output-content:has(.board-workspace){overscroll-behavior:contain}
+.board-workspace{min-height:0}
+.board-mobile-nav{display:flex;flex-wrap:nowrap;gap:5px;overflow-x:auto;padding:3px 1px 7px;flex-shrink:0;scrollbar-width:thin}
+.board-mobile-nav button{flex:0 0 auto;border:1px solid var(--border,#555);background:var(--surface,#242424);color:var(--text,#eee);border-radius:8px;min-height:36px;padding:6px 10px;font-size:12px}
+.board-mobile-nav button[aria-pressed=true]{border-color:var(--accent,#64b9a1);background:color-mix(in srgb,var(--accent,#64b9a1) 18%,var(--surface,#242424));font-weight:700}
+.board-mobile-expand{margin-left:auto}
+.board-workspace-columns{min-height:0;grid-template-rows:minmax(0,1fr)}
+.board-workspace-columns>section{min-height:0}
+.board-grid-viewport{min-height:100px;touch-action:pan-x pan-y;overscroll-behavior:contain}
+.board-workspace[data-mobile-panel=grid] :is(.board-grid-controls,.board-table-theme,.board-tile-library,.board-inspector),
+.board-workspace[data-mobile-panel=tools] :is(.board-table-theme,.board-tile-library,.board-inspector),
+.board-workspace[data-mobile-panel=theme] :is(.board-grid-controls,.board-tile-library,.board-inspector),
+.board-workspace[data-mobile-panel=tiles] :is(.board-grid-controls,.board-table-theme,.board-inspector),
+.board-workspace[data-mobile-panel=details] :is(.board-grid-controls,.board-table-theme,.board-tile-library){display:none}
+.board-workspace[data-mobile-panel=details] .board-inspector{display:block}
+.board-workspace[data-mobile-panel=details] .board-inspector-content{max-height:min(44dvh,400px)}
+.board-workspace[data-mobile-panel=theme] .board-table-theme,.board-workspace[data-mobile-panel=tiles] .board-tile-library{max-height:min(44dvh,400px)}
+.board-grid-controls button,.board-inspector summary,.board-table-theme summary,.board-tile-library summary{min-height:36px}
+body.board-mobile-full-active{overflow:hidden!important}
+.board-workspace.board-mobile-full{position:fixed;z-index:99999;inset:env(safe-area-inset-top,0px) 0 env(safe-area-inset-bottom,0px);height:auto;min-height:0;padding:10px;background:var(--surface-2,#171717)}
+.board-workspace.board-mobile-full .board-workspace-columns{flex:1;min-height:0}
+}
+@media(min-width:701px){.board-mobile-nav{display:none}}
