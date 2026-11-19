@@ -1,0 +1,6 @@
+/* Additive Qwen3 launcher: existing Sandbox navigation remains untouched. */
+.ps-nav .w3-qwen-entry{flex-shrink:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-height:58px;margin:5px 4px;padding:7px 2px;border:1px solid rgba(52,211,153,.4);border-radius:10px;background:rgba(16,185,129,.09);color:inherit;cursor:pointer;font:inherit}
+.ps-nav .w3-qwen-entry:focus-visible{outline:2px solid #34d399;outline-offset:2px}
+.ps-nav .w3-qwen-icon{font-size:21px;line-height:1.2}
+.ps-nav .w3-qwen-label{font-size:10px;line-height:1.2;white-space:nowrap}
+@media(min-width:768px){.ps-nav .w3-qwen-entry{flex-direction:row;gap:12px;justify-content:flex-start;padding:12px 16px;margin:8px}.ps-nav .w3-qwen-label{font-size:14px}}
