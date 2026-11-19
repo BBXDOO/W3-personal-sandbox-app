@@ -35,6 +35,7 @@ import java.nio.charset.StandardCharsets;
 public class MainActivity extends Activity {
     private static final String ORIGIN = "https://appassets.androidplatform.net";
     private static final String ROOT = "/assets/www/";
+    private static final String QW1_RELEASES_API = "https://api.github.com/repos/BBXDOO/W3-personal-sandbox-app/releases?per_page=30";
     private static final String RELEASE_API = "https://api.github.com/repos/BBXDOO/W3-personal-sandbox-app/releases/latest";
     private static final String RELEASE_PREFIX = "https://github.com/BBXDOO/W3-personal-sandbox-app/releases/download/";
     private static final int PICK_FILE = 1201;
@@ -277,13 +278,10 @@ public class MainActivity extends Activity {
     }
 
     private void checkForUpdate() {
-        if (getPackageName().endsWith(".qw1")) {
-            showUpdateMessage("QW1 เป็นแอปทดลองแยกจาก Sandbox จึงไม่ใช้ระบบอัปเดตของแอปหลัก");
-            return;
-        }
+        boolean qw1 = getPackageName().endsWith(".qw1");
         try {
             JSONObject release;
-            HttpURLConnection connection = connect(RELEASE_API);
+            HttpURLConnection connection = connect(qw1 ? QW1_RELEASES_API : RELEASE_API);
             try (InputStream in = connection.getInputStream(); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
                 byte[] chunk = new byte[4096];
                 int count;
@@ -291,12 +289,29 @@ public class MainActivity extends Activity {
                     if (out.size() + count > 1000000) throw new IllegalStateException("Release metadata too large");
                     out.write(chunk, 0, count);
                 }
-                release = new JSONObject(out.toString("UTF-8"));
+                if (qw1) {
+                    JSONArray all = new JSONArray(out.toString("UTF-8"));
+                    release = null;
+                    int best = -1;
+                    for (int n = 0; n < all.length(); n++) {
+                        JSONObject candidate = all.getJSONObject(n);
+                        String candidateTag = candidate.optString("tag_name");
+                        if (!candidateTag.matches("qw1-v[0-9]+") || candidate.optBoolean("draft")) continue;
+                        int candidateVersion = Integer.parseInt(candidateTag.substring(5));
+                        if (candidateVersion > best) { best = candidateVersion; release = candidate; }
+                    }
+                    if (release == null) {
+                        showUpdateMessage("ยังไม่มี QW1 รุ่นอัปเดตในช่องทางทดลอง");
+                        return;
+                    }
+                } else {
+                    release = new JSONObject(out.toString("UTF-8"));
+                }
             } finally { connection.disconnect(); }
 
             String tag = release.getString("tag_name");
-            if (!tag.matches("v[0-9]+")) throw new IllegalStateException("Invalid release tag");
-            int version = Integer.parseInt(tag.substring(1));
+            if (!tag.matches(qw1 ? "qw1-v[0-9]+" : "v[0-9]+")) throw new IllegalStateException("Invalid release tag");
+            int version = Integer.parseInt(tag.substring(qw1 ? 5 : 1));
             if (version <= currentVersion()) {
                 showUpdateMessage("รุ่นนี้เป็นรุ่นล่าสุดแล้ว (v" + currentVersion() + ")");
                 return;
@@ -305,7 +320,7 @@ public class MainActivity extends Activity {
             JSONObject apk = null;
             for (int i = 0; i < assets.length(); i++) {
                 JSONObject candidate = assets.getJSONObject(i);
-                if (candidate.optString("name").endsWith(".apk")) { apk = candidate; break; }
+                if (candidate.optString("name").equals(qw1 ? "QW1.apk" : "W3-Personal-Sandbox-v" + version + ".apk") || (!qw1 && candidate.optString("name").endsWith(".apk"))) { apk = candidate; break; }
             }
             if (apk == null) throw new IllegalStateException("No APK in release");
             String address = apk.getString("browser_download_url");
@@ -321,7 +336,7 @@ public class MainActivity extends Activity {
                     .setMessage(message).setNegativeButton("ไว้ก่อน", null)
                     .setPositiveButton("ดาวน์โหลดและติดตั้ง", (dialog, which) -> {
                         if (Build.VERSION.SDK_INT >= 26 && !getPackageManager().canRequestPackageInstalls()) {
-                            Toast.makeText(this, "อนุญาตติดตั้งแอปจาก Personal Sandbox แล้วกดตรวจอัปเดตอีกครั้ง", Toast.LENGTH_LONG).show();
+                            Toast.makeText(this, "อนุญาตติดตั้งแอปจาก " + (qw1 ? "QW1" : "Personal Sandbox") + " แล้วกดตรวจอัปเดตอีกครั้ง", Toast.LENGTH_LONG).show();
                             Intent intent = new Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
                                 Uri.parse("package:" + getPackageName()));
                             startActivity(intent);
