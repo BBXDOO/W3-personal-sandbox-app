@@ -11,6 +11,8 @@ import java.io.FileOutputStream;
 import java.io.ByteArrayOutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.net.InetAddress;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.security.MessageDigest;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -41,6 +43,9 @@ public class MainActivity extends Activity {
     private ValueCallback<Uri[]> fileCallback;
     private byte[] pendingExport;
     private boolean storyWriterOpen;
+    private volatile String qwenSessionToken = "";
+    private final AtomicInteger qwenInFlight = new AtomicInteger(0);
+    private static final String QWEN_BASE = "http://127.0.0.1:8090";
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
@@ -104,6 +109,40 @@ public class MainActivity extends Activity {
     }
 
     private class ExportBridge {
+        @JavascriptInterface public void qwenRequest(String action, String requestId, String payload) {
+            if (requestId == null || !requestId.matches("[A-Za-z0-9_-]{1,48}")) return;
+            if (payload == null || payload.length() > 12000) {
+                qwenDeliver(requestId, false, "คำขอใหญ่เกินกำหนด", null); return;
+            }
+            if ("token".equals(action)) {
+                if (payload.length() < 8 || payload.length() > 1024) {
+                    qwenDeliver(requestId, false, "รูปแบบ Token ไม่ถูกต้อง", null); return;
+                }
+                qwenSessionToken = payload.trim();
+                qwenDeliver(requestId, true, "ตั้งค่าสิทธิ์สำหรับรอบการใช้งานนี้แล้ว", null);
+                return;
+            }
+            if ("clearToken".equals(action)) {
+                qwenSessionToken = "";
+                qwenDeliver(requestId, true, "ล้าง Token จากหน่วยความจำแล้ว", null);
+                return;
+            }
+            if (!"health".equals(action) && !"chat".equals(action)) {
+                qwenDeliver(requestId, false, "ไม่รองรับคำสั่งนี้", null); return;
+            }
+            if ("chat".equals(action) && qwenSessionToken.isEmpty()) {
+                qwenDeliver(requestId, false, "กรุณากำหนด Token ก่อนสนทนา", null); return;
+            }
+            if (qwenInFlight.incrementAndGet() != 1) {
+                qwenInFlight.decrementAndGet();
+                qwenDeliver(requestId, false, "มีคำขอกำลังทำงานอยู่", null); return;
+            }
+            new Thread(() -> {
+                try { qwenPerform(action, requestId, payload); }
+                finally { qwenInFlight.decrementAndGet(); }
+            }, "W3-Qwen-Local").start();
+        }
+
         @JavascriptInterface public void checkUpdate() { new Thread(MainActivity.this::checkForUpdate).start(); }
         @JavascriptInterface public void saveJson(String name, String contents) {
             saveDocument(name, contents, "application/json");
@@ -124,6 +163,68 @@ public class MainActivity extends Activity {
                     startActivity(new Intent(Intent.ACTION_VIEW, uri));
                 } catch (Exception e) { Toast.makeText(MainActivity.this, "เปิดลิงก์ไม่สำเร็จ", Toast.LENGTH_SHORT).show(); }
             });
+        }
+    }
+
+    private void qwenDeliver(String id, boolean ok, String message, JSONObject result) {
+        try {
+            JSONObject event = new JSONObject();
+            event.put("id", id);
+            event.put("ok", ok);
+            event.put("message", message);
+            if (result != null) event.put("data", result);
+            String js = "window.w3QwenNativeResult && window.w3QwenNativeResult(" +
+                JSONObject.quote(event.toString()) + ");";
+            runOnUiThread(() -> {
+                if (webView != null && !isFinishing()) webView.evaluateJavascript(js, null);
+            });
+        } catch (Exception ignored) { }
+    }
+
+    private void qwenPerform(String action, String id, String payload) {
+        HttpURLConnection connection = null;
+        try {
+            // Fixed loopback target: no caller-controlled URL, path, host or port.
+            String path = "health".equals(action) ? "/api/health" : "/api/chat";
+            URL url = new URL(QWEN_BASE + path);
+            connection = (HttpURLConnection) url.openConnection();
+            connection.setConnectTimeout(5000);
+            connection.setReadTimeout("chat".equals(action) ? 120000 : 5000);
+            connection.setUseCaches(false);
+            connection.setRequestProperty("Accept", "application/json");
+            if ("chat".equals(action)) {
+                JSONObject body = new JSONObject();
+                body.put("provider", "qwen");
+                body.put("message", payload);
+                connection.setRequestMethod("POST");
+                connection.setDoOutput(true);
+                connection.setRequestProperty("Content-Type", "application/json; charset=utf-8");
+                connection.setRequestProperty("Authorization", "Bearer " + qwenSessionToken);
+                byte[] bytes = body.toString().getBytes(StandardCharsets.UTF_8);
+                try (OutputStream out = connection.getOutputStream()) { out.write(bytes); }
+            } else {
+                connection.setRequestMethod("GET");
+            }
+            int code = connection.getResponseCode();
+            InputStream stream = code >= 200 && code < 300 ? connection.getInputStream() : connection.getErrorStream();
+            ByteArrayOutputStream output = new ByteArrayOutputStream();
+            if (stream != null) try (InputStream input = stream) {
+                byte[] buffer = new byte[4096];
+                int count;
+                while ((count = input.read(buffer)) != -1) {
+                    if (output.size() + count > 524288) throw new IllegalStateException("คำตอบใหญ่เกิน 512 KB");
+                    output.write(buffer, 0, count);
+                }
+            }
+            JSONObject response;
+            try { response = new JSONObject(output.toString("UTF-8")); }
+            catch (Exception ignored) { response = new JSONObject(); }
+            if (code >= 200 && code < 300) qwenDeliver(id, true, "HTTP " + code, response);
+            else qwenDeliver(id, false, code == 403 ? "ไม่ได้รับอนุญาต (HTTP 403)" : "HTTP " + code, null);
+        } catch (Exception error) {
+            qwenDeliver(id, false, "เชื่อมต่อ Termux ไม่สำเร็จ: " + error.getClass().getSimpleName(), null);
+        } finally {
+            if (connection != null) connection.disconnect();
         }
     }
 
@@ -304,6 +405,7 @@ public class MainActivity extends Activity {
     }
     @Override protected void onDestroy() {
         if (fileCallback != null) fileCallback.onReceiveValue(null);
+        qwenSessionToken = "";
         webView.destroy();
         super.onDestroy();
     }
