@@ -13,7 +13,19 @@ window.addEventListener('message',event=>{
  if(!activeFrame||event.source!==activeFrame.contentWindow)return;
  const d=event.data;
  if(!d||d.w3qwen!==true||d.kind!=='request')return;
- if(!/^[A-Za-z0-9_-]{1,48}$/.test(d.id)||!['health','chat','token','clearToken'].includes(d.action)||typeof d.payload!=='string')return;
+ if(!/^[A-Za-z0-9_-]{1,48}$/.test(d.id)||!['health','chat','token','clearToken','export'].includes(d.action)||typeof d.payload!=='string')return;
+ if(d.action==='export'){
+  try{
+   const file=JSON.parse(d.payload);
+   if(typeof file.name!=='string'||typeof file.content!=='string'||file.name.length>100||file.content.length>1048576)throw Error('ขนาดไฟล์ไม่ถูกต้อง');
+   if(!/^[^\\/:*?"<>|]+$/.test(file.name))throw Error('ชื่อไฟล์ไม่ถูกต้อง');
+   if(typeof AndroidBridge==='undefined')throw Error('Android Bridge ไม่พร้อม');
+   if(file.mime==='application/json')AndroidBridge.saveJson(file.name,file.content);
+   else AndroidBridge.saveText(file.name,file.content,'text/plain');
+   activeFrame.contentWindow.postMessage({w3qwen:true,kind:'response',id:d.id,ok:true,message:'เปิดหน้าบันทึกไฟล์แล้ว'},'*');
+  }catch(err){activeFrame.contentWindow.postMessage({w3qwen:true,kind:'response',id:d.id,ok:false,message:err.message},'*')}
+  return;
+ }
  if(typeof AndroidBridge==='undefined'||typeof AndroidBridge.qwenRequest!=='function'){
   activeFrame.contentWindow.postMessage({w3qwen:true,kind:'response',id:d.id,ok:false,message:'Android Bridge ยังไม่พร้อม — ต้องติดตั้ง APK รุ่นที่รองรับ'},'*');return;
  }
