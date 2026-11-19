@@ -40,7 +40,11 @@ function mount(){
  button.className='w3-qwen-entry';button.innerHTML='<span aria-hidden="true" class="w3-qwen-icon">💻</span><span class="w3-qwen-label">Qwen3</span>';
  button.addEventListener('click',openWorkspace);
  // Append to the existing navigation, after the existing tools, without modifying their behavior.
- nav.appendChild(button);
+ const formatButton=nav.querySelector('button[aria-label="จัดรูปแบบเนื้อหา"]');
+ const formatGroup=formatButton&&formatButton.parentElement;
+ const scrollColumn=formatGroup&&formatGroup.parentElement;
+ if(formatGroup&&scrollColumn)scrollColumn.insertBefore(button,formatGroup);
+ else nav.appendChild(button);
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
 function init(){mount();const observer=new MutationObserver(()=>{if(!document.getElementById(ENTRY_ID))mount()});observer.observe(document.getElementById('root')||document.body,{childList:true,subtree:true});}
