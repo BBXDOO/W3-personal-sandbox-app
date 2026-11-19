@@ -13,7 +13,15 @@ window.addEventListener('message',event=>{
  if(!activeFrame||event.source!==activeFrame.contentWindow)return;
  const d=event.data;
  if(!d||d.w3qwen!==true||d.kind!=='request')return;
- if(!/^[A-Za-z0-9_-]{1,48}$/.test(d.id)||!['health','chat','token','clearToken','export'].includes(d.action)||typeof d.payload!=='string')return;
+ if(!/^[A-Za-z0-9_-]{1,48}$/.test(d.id)||!['health','chat','token','clearToken','export','checkUpdate'].includes(d.action)||typeof d.payload!=='string')return;
+ if(d.action==='checkUpdate'){
+  try{
+   if(typeof AndroidBridge==='undefined'||typeof AndroidBridge.checkUpdate!=='function')throw Error('Android Bridge ไม่พร้อม');
+   AndroidBridge.checkUpdate();
+   activeFrame.contentWindow.postMessage({w3qwen:true,kind:'response',id:d.id,ok:true,message:'กำลังตรวจอัปเดต QW1'},'*');
+  }catch(err){activeFrame.contentWindow.postMessage({w3qwen:true,kind:'response',id:d.id,ok:false,message:err.message},'*')}
+  return;
+ }
  if(d.action==='export'){
   try{
    const file=JSON.parse(d.payload);
