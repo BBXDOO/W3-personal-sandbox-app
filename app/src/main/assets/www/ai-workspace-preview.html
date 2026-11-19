@@ -8,8 +8,12 @@
 <button class="tab" role="tab" data-panel="chat" aria-selected="true">💬 สนทนา</button>
 <button class="tab" role="tab" data-panel="documents" aria-selected="false">📄 เอกสาร</button>
 <button class="tab" role="tab" data-panel="tools" aria-selected="false">🧰 เครื่องมือ</button></div>
-<section class="panel" id="chat"><h2>สนทนา / ข้อเสนอ</h2><div id="messages" role="log" aria-live="polite"><div class="message system">หน้าต่างนี้ยังไม่เชื่อม Qwen3 จริง ข้อความที่พิมพ์จะเป็นบันทึกในหน้านี้เท่านั้น</div></div>
-<form id="chat-form"><label for="prompt">ข้อความ</label><textarea id="prompt" maxlength="10000" placeholder="พิมพ์ภาษาไทยเพื่อเตรียมสนทนากับ Qwen3"></textarea><div class="actions"><button class="primary" type="submit">เพิ่มข้อความ</button><button type="button" id="clear-chat">ล้างหน้าจอสนทนา</button><button type="button" id="export-chat">ส่งออกบทสนทนา</button></div></form><p class="hint">ยังไม่มีการส่งข้อความถึงโมเดล ไม่อ่าน Token และไม่ส่งข้อมูลออกจากเครื่อง</p></section>
+<section class="panel" id="chat"><h2>สนทนา / ข้อเสนอ</h2>
+<div class="item"><label for="qwen-token">Token ของ AI Workspace (ใช้เฉพาะรอบนี้)</label>
+<input id="qwen-token" type="password" autocomplete="off" placeholder="วาง Token จาก Termux โดยไม่บันทึกในแอป">
+<div class="actions"><button type="button" id="set-token">ใช้ Token</button><button type="button" id="clear-token">ล้าง Token</button><button type="button" id="health-check">ตรวจสถานะ API</button></div>
+<small>Token อยู่ในหน่วยความจำของ Android เท่านั้นจนกว่าจะปิดแอป · ไม่บันทึกลงไฟล์หรือ GitHub</small></div><div id="messages" role="log" aria-live="polite"><div class="message system">หน้าต่างนี้ยังไม่เชื่อม Qwen3 จริง ข้อความที่พิมพ์จะเป็นบันทึกในหน้านี้เท่านั้น</div></div>
+<form id="chat-form"><label for="prompt">ข้อความ</label><textarea id="prompt" maxlength="10000" placeholder="พิมพ์ภาษาไทยเพื่อเตรียมสนทนากับ Qwen3"></textarea><div class="actions"><button class="primary" type="submit" id="send-chat">ส่งถึง Qwen3</button><button type="button" id="clear-chat">ล้างหน้าจอสนทนา</button><button type="button" id="export-chat">ส่งออกบทสนทนา</button></div></form><div id="proposals" class="item"><strong>ข้อเสนอจาก Qwen3</strong><p class="muted">ยังไม่มีข้อเสนอ · ตรวจอ่านได้อย่างเดียว ไม่เขียนไฟล์</p></div><p class="hint">ส่งข้อความเฉพาะไปยัง API บนโทรศัพท์ที่ 127.0.0.1:8090 · ไม่มีการอนุมัติหรือเขียนไฟล์โดยอัตโนมัติ</p></section>
 <section class="panel" id="documents" hidden><h2>เอกสาร / พื้นที่ข้อมูล</h2><p class="muted">นำเข้า .txt, .md, .json, .csv, .html ขนาดไม่เกิน 1 MB ต่อไฟล์ เพื่ออ่านและแก้ไขในหน้าต่างนี้ ไม่เปลี่ยนไฟล์ต้นฉบับ</p>
 <label for="doc-file" class="file-label">+ นำเข้าไฟล์จากเครื่อง</label><input id="doc-file" type="file" accept=".txt,.md,.markdown,.json,.csv,.html,text/plain,application/json,text/html">
 <label for="doc-name">ชื่อไฟล์</label><input id="doc-name" value="note.txt" maxlength="100">
@@ -29,8 +33,54 @@ function status(s){$('status').textContent=s}
 function download(name,content,type='text/plain'){const blob=new Blob([content],{type:type+';charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),3000)}
 function safeName(s){return (s||'note.txt').replace(/[\\/:*?"<>|]/g,'_').slice(0,100)}
 document.querySelectorAll('.tab').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('.tab').forEach(x=>x.setAttribute('aria-selected',String(x===b)));document.querySelectorAll('.panel').forEach(x=>x.hidden=x.id!==b.dataset.panel);status('')}));
+let requestCounter=0;
+const pending=new Map();
+function qwenRequest(action,payload){
+ return new Promise((resolve,reject)=>{
+  const id='q'+(++requestCounter);
+  const timer=setTimeout(()=>{pending.delete(id);reject(Error('หมดเวลารอ Android Bridge'))},action==='chat'?130000:12000);
+  pending.set(id,{resolve,reject,timer});
+  window.parent.postMessage({w3qwen:true,kind:'request',action,id,payload},'*');
+ });
+}
+window.addEventListener('message',event=>{
+ if(event.source!==window.parent)return;
+ const d=event.data;
+ if(!d||d.w3qwen!==true||d.kind!=='response'||typeof d.id!=='string')return;
+ const p=pending.get(d.id);if(!p)return;
+ clearTimeout(p.timer);pending.delete(d.id);
+ if(d.ok)p.resolve(d.data||{});
+ else p.reject(Error(d.message||'เกิดข้อผิดพลาด'));
+});
+$('set-token').onclick=async()=>{
+ const token=$('qwen-token').value.trim();if(!token)return status('กรุณากรอก Token');
+ try{await qwenRequest('token',token);$('qwen-token').value='';status('กำหนด Token ใน Android แล้ว')}catch(e){status(e.message)}
+};
+$('clear-token').onclick=async()=>{try{await qwenRequest('clearToken','');$('qwen-token').value='';status('ล้าง Token แล้ว')}catch(e){status(e.message)}};
+$('health-check').onclick=async()=>{status('กำลังตรวจ API...');try{const r=await qwenRequest('health','');$('connection').textContent=r.status||r.service||'API ตอบกลับแล้ว';status('API ตอบกลับสำเร็จ (ยังไม่ยืนยัน Qwen3)')}catch(e){$('connection').textContent='API ไม่พร้อม';status(e.message)}};
+function showProposal(p){
+ const root=$('proposals');root.replaceChildren();
+ const heading=document.createElement('strong');heading.textContent='ข้อเสนอจาก Qwen3 (รอตรวจ ไม่มีการเขียนไฟล์)';
+ const path=document.createElement('p');path.textContent='ไฟล์: '+String(p.path||'ไม่ระบุ');
+ const pre=document.createElement('pre');pre.textContent=String(p.content||'').slice(0,30000);
+ root.append(heading,path,pre);
+}
 function bubble(role,text){const el=document.createElement('div');el.className='message '+role;el.textContent=text;$('messages').appendChild(el);$('messages').scrollTop=$('messages').scrollHeight}
-$('chat-form').addEventListener('submit',e=>{e.preventDefault();const value=$('prompt').value.trim();if(!value)return status('กรุณาพิมพ์ข้อความ');state.chat.push({role:'user',content:value});bubble('user',value);$('prompt').value='';status('บันทึกข้อความในหน้าจอแล้ว (ยังไม่ส่งถึง Qwen3)')});
+$('chat-form').addEventListener('submit',async e=>{
+ e.preventDefault();
+ const value=$('prompt').value.trim();if(!value)return status('กรุณาพิมพ์ข้อความ');
+ const send=$('send-chat');send.disabled=true;
+ state.chat.push({role:'user',content:value});bubble('user',value);$('prompt').value='';
+ status('กำลังส่งถึง Qwen3 ในเครื่อง...');
+ try{
+  const result=await qwenRequest('chat',value);
+  const answer=typeof result.answer==='string'?result.answer:JSON.stringify(result);
+  state.chat.push({role:'assistant',content:answer});bubble('assistant',answer);
+  if(result.proposal&&typeof result.proposal==='object')showProposal(result.proposal);
+  status('Qwen3 ตอบกลับแล้ว · ข้อเสนอเป็นแบบอ่านอย่างเดียว');
+ }catch(err){bubble('system','ไม่สามารถสนทนาได้: '+err.message);status('ส่งข้อความไม่สำเร็จ')}
+ finally{send.disabled=false}
+});
 $('clear-chat').onclick=()=>{if(!confirm('ล้างข้อความในหน้าต่างนี้?'))return;state.chat=[];$('messages').replaceChildren();status('ล้างแล้ว')};
 $('export-chat').onclick=()=>{download('w3-qwen-chat.json',JSON.stringify({version:1,messages:state.chat},null,2),'application/json');status('ส่งออกบทสนทนาแล้ว')};
 function drawDocs(){const list=$('document-list');list.replaceChildren();state.docs.forEach((d,i)=>{const b=document.createElement('button');b.type='button';b.className='item';b.textContent='📄 '+d.name;b.onclick=()=>{state.docIndex=i;$('doc-name').value=d.name;$('doc-content').value=d.content;status('เปิด '+d.name)};list.appendChild(b)})}
