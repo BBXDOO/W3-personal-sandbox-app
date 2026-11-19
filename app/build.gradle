@@ -14,7 +14,7 @@ android {
         applicationId 'com.w3personalsandbox.app'
         minSdk 24
         targetSdk 35
-        versionCode 57
+        versionCode 58
         versionName '0.57'
     }
 
@@ -33,8 +33,6 @@ android {
             versionNameSuffix '-QW1'
             // Install QW1 alongside the owner's existing Sandbox without replacing its data.
             applicationIdSuffix '.qw1'
-            // QW1 build 58 is newer than the first test APK (57).
-            versionCode 58
             resValue 'string', 'qw1_app_name', 'QW1'
         }
         release {
