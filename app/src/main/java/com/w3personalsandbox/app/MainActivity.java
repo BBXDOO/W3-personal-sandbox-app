@@ -277,6 +277,10 @@ public class MainActivity extends Activity {
     }
 
     private void checkForUpdate() {
+        if (getPackageName().endsWith(".qw1")) {
+            showUpdateMessage("QW1 เป็นแอปทดลองแยกจาก Sandbox จึงไม่ใช้ระบบอัปเดตของแอปหลัก");
+            return;
+        }
         try {
             JSONObject release;
             HttpURLConnection connection = connect(RELEASE_API);
