@@ -39,3 +39,15 @@ Base: `refactor/v0.2`. Development branch: `feature/ai-workspace-tool-bridge`.
 4. Project save/export/import still works; no unintended modifications.
 5. Existing update button detects the signed latest release, verifies digest, and hands off to Android installer.
 6. Bundled guide matches repository guide, release manifest and shipped UI.
+
+## W3 Agent Workbench support (verified source)
+Reference repository: `BBXDOO/W3_HB_team_BXCGICOG`, directory `w3_tool_store/agent_workbench/`.
+- `tools/rea_mcp_probe/`: MCP integration probe; review its own README and evidence before use.
+- `tools/android_webview_probe/`: browser-based layout checks, not a real device WebView test.
+- `tools/android_apk_probe/`: APK signing and manifest inspection using Android SDK, not runtime device validation.
+- `tools/system_inspection/`: orchestrated inspection of W3 subsystems.
+- `tools/artifact_handoff/`: reviewed artifact delivery and evidence.
+- `profiles/oppo_android_probe/`: local MPCP Blueprint + File.void document/setup workflow, not APK deployment.
+- MPCP sandbox and Paper runtime are currently outside the workbench folder; follow the documented entry points rather than assuming an MCP server is running.
+
+Integration rules: keep W3 core/prototypes unchanged; use isolated workbench runs and capture evidence; record source commit, tool inputs/outputs and permission scope. No probe grants additional file, device, or deployment rights. Do not equate a passing browser or static APK probe with successful installation on OPPO.
