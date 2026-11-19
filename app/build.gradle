@@ -29,6 +29,12 @@ android {
         }
     }
     buildTypes {
+        debug {
+            // Install QW1 alongside the owner's existing Sandbox without replacing its data.
+            applicationIdSuffix '.qw1'
+            versionNameSuffix '-QW1'
+            resValue 'string', 'qw1_app_name', 'QW1'
+        }
         release {
             minifyEnabled false
             if (hasReleaseSigning) signingConfig signingConfigs.personalRelease
