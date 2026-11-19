@@ -85,11 +85,11 @@ $('chat-form').addEventListener('submit',async e=>{
   const docId=$('context-doc').value,toolId=$('context-tool').value;
   if($('include-docs').checked&&docId!==''){
    const doc=state.docs[Number(docId)];
-   if(doc)message='เอกสารที่ผู้ใช้อนุญาตให้อ่าน ('+doc.name+'):\\n'+doc.content.slice(0,5000)+'\n\nคำขอผู้ใช้: '+message;
+   if(doc)message='เอกสารที่ผู้ใช้อนุญาตให้อ่าน ('+doc.name+'):\n'+doc.content.slice(0,5000)+'\n\nคำขอผู้ใช้: '+message;
   }
   if($('include-tool').checked&&toolId!==''){
    const tool=state.tools[Number(toolId)];
-   if(tool)message='แม่แบบเครื่องมือ '+tool.name+':\\n'+tool.instruction.slice(0,2000)+'\n\n'+message;
+   if(tool)message='แม่แบบเครื่องมือ '+tool.name+':\n'+tool.instruction.slice(0,2000)+'\n\n'+message;
   }
   if(message.length>10000)throw Error('ข้อมูลที่แนบเกิน 10,000 ตัวอักษร กรุณาลดขนาด');
   const result=await qwenRequest('chat',message);
