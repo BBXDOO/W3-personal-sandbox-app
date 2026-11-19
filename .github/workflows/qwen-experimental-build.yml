@@ -4,6 +4,7 @@ on:
     branches:
       - feature/ai-workspace-tool-bridge
       - feature/qw2-integrated-prototype
+      - feature/qw3-chat-submit-fix
   workflow_dispatch:
 permissions:
   contents: read
@@ -27,6 +28,6 @@ jobs:
         run: unzip -t app/build/outputs/apk/debug/app-debug.apk
       - uses: actions/upload-artifact@v4
         with:
-          name: QW2-integrated-debug-APK
+          name: QW3-chat-fix-debug-APK
           path: app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
