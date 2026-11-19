@@ -13,7 +13,7 @@
 <input id="qwen-token" type="password" autocomplete="off" placeholder="วาง Token จาก Termux โดยไม่บันทึกในแอป">
 <div class="actions"><button type="button" id="set-token">ใช้ Token</button><button type="button" id="clear-token">ล้าง Token</button><button type="button" id="health-check">ตรวจสถานะ API</button></div>
 <small>Token อยู่ในหน่วยความจำของ Android เท่านั้นจนกว่าจะปิดแอป · ไม่บันทึกลงไฟล์หรือ GitHub</small></div>
-<form id="chat-form"><label for="prompt">ข้อความ</label><textarea id="prompt" maxlength="10000" placeholder="พิมพ์ข้อความถึง Qwen3 เช่น สวัสดี"></textarea><div class="actions"><button class="primary" type="submit" id="send-chat">ส่งถึง Qwen3</button><button type="button" id="clear-chat">ล้างหน้าจอสนทนา</button><button type="button" id="export-chat">ส่งออกบทสนทนา</button></div></form><h2 style="margin-top:18px">💬 คำตอบจาก Qwen3</h2><div id="messages" role="log" aria-live="polite"><div class="message system">รอการสนทนา · กดตรวจสถานะ API และตั้ง Token ก่อนส่งข้อความ</div></div><div id="proposals" class="item"><strong>ข้อเสนอจาก Qwen3</strong><p class="muted">ยังไม่มีข้อเสนอ · ตรวจอ่านได้อย่างเดียว ไม่เขียนไฟล์</p></div><p class="hint">ส่งข้อความเฉพาะไปยัง API บนโทรศัพท์ที่ 127.0.0.1:8090 · ไม่มีการอนุมัติหรือเขียนไฟล์โดยอัตโนมัติ</p></section>
+<div class="item"><label><input type="checkbox" id="include-docs" style="width:auto" checked> แนบเอกสารที่เลือกให้ Qwen3 วิเคราะห์</label><label for="context-doc">เอกสารที่อนุญาต</label><select id="context-doc"><option value="">ไม่แนบเอกสาร</option></select><label><input type="checkbox" id="include-tool" style="width:auto"> ใช้แม่แบบเครื่องมือ</label><select id="context-tool"><option value="">ไม่ใช้แม่แบบ</option></select><small>ส่งเฉพาะเนื้อหาที่เลือกในการสนทนาครั้งนี้ ไม่มีสิทธิ์เข้าถึงไฟล์อื่นโดยอัตโนมัติ</small></div><form id="chat-form"><label for="prompt">ข้อความ</label><textarea id="prompt" maxlength="10000" placeholder="พิมพ์ข้อความถึง Qwen3 เช่น สวัสดี"></textarea><div class="actions"><button class="primary" type="submit" id="send-chat">ส่งถึง Qwen3</button><button type="button" id="clear-chat">ล้างหน้าจอสนทนา</button><button type="button" id="export-chat">ส่งออกบทสนทนา</button></div></form><h2 style="margin-top:18px">💬 คำตอบจาก Qwen3</h2><div id="messages" role="log" aria-live="polite"><div class="message system">รอการสนทนา · กดตรวจสถานะ API และตั้ง Token ก่อนส่งข้อความ</div></div><div id="proposals" class="item"><strong>ข้อเสนอจาก Qwen3</strong><p class="muted">ยังไม่มีข้อเสนอ · ตรวจอ่านได้อย่างเดียว ไม่เขียนไฟล์</p></div><p class="hint">ส่งข้อความเฉพาะไปยัง API บนโทรศัพท์ที่ 127.0.0.1:8090 · ไม่มีการอนุมัติหรือเขียนไฟล์โดยอัตโนมัติ</p></section>
 <section class="panel" id="documents" hidden><h2>เอกสาร / พื้นที่ข้อมูล</h2><p class="muted">นำเข้า .txt, .md, .json, .csv, .html ขนาดไม่เกิน 1 MB ต่อไฟล์ เพื่ออ่านและแก้ไขในหน้าต่างนี้ ไม่เปลี่ยนไฟล์ต้นฉบับ</p>
 <label for="doc-file" class="file-label">+ นำเข้าไฟล์จากเครื่อง</label><input id="doc-file" type="file" accept=".txt,.md,.markdown,.json,.csv,.html,text/plain,application/json,text/html">
 <label for="doc-name">ชื่อไฟล์</label><input id="doc-name" value="note.txt" maxlength="100">
@@ -81,7 +81,18 @@ $('chat-form').addEventListener('submit',async e=>{
  state.chat.push({role:'user',content:value});bubble('user',value);$('prompt').value='';
  status('กำลังส่งถึง Qwen3 ในเครื่อง...');bubble('system','กำลังรอ Qwen3 ตอบกลับ...');
  try{
-  const result=await qwenRequest('chat',value);
+  let message=value;
+  const docId=$('context-doc').value,toolId=$('context-tool').value;
+  if($('include-docs').checked&&docId!==''){
+   const doc=state.docs[Number(docId)];
+   if(doc)message='เอกสารที่ผู้ใช้อนุญาตให้อ่าน ('+doc.name+'):\\n'+doc.content.slice(0,5000)+'\\n\\nคำขอผู้ใช้: '+message;
+  }
+  if($('include-tool').checked&&toolId!==''){
+   const tool=state.tools[Number(toolId)];
+   if(tool)message='แม่แบบเครื่องมือ '+tool.name+':\\n'+tool.instruction.slice(0,2000)+'\\n\\n'+message;
+  }
+  if(message.length>10000)throw Error('ข้อมูลที่แนบเกิน 10,000 ตัวอักษร กรุณาลดขนาด');
+  const result=await qwenRequest('chat',message);
   const answer=typeof result.answer==='string'?result.answer:(typeof result.response==='string'?result.response:(typeof result.message==='string'?result.message:JSON.stringify(result)));
   state.chat.push({role:'assistant',content:answer});bubble('assistant',answer);
   if(result.proposal&&typeof result.proposal==='object')showProposal(result.proposal);
@@ -91,13 +102,22 @@ $('chat-form').addEventListener('submit',async e=>{
 });
 $('clear-chat').onclick=()=>{if(!confirm('ล้างข้อความในหน้าต่างนี้?'))return;state.chat=[];$('messages').replaceChildren();status('ล้างแล้ว')};
 $('export-chat').onclick=()=>{download('w3-qwen-chat.json',JSON.stringify({version:1,messages:state.chat},null,2),'application/json');status('ส่งออกบทสนทนาแล้ว')};
-function drawDocs(){const list=$('document-list');list.replaceChildren();state.docs.forEach((d,i)=>{const b=document.createElement('button');b.type='button';b.className='item';b.textContent='📄 '+d.name;b.onclick=()=>{state.docIndex=i;$('doc-name').value=d.name;$('doc-content').value=d.content;status('เปิด '+d.name)};list.appendChild(b)})}
+function updateContextOptions(){
+ const doc=$('context-doc'),tool=$('context-tool'),oldDoc=doc.value,oldTool=tool.value;
+ doc.replaceChildren(new Option('ไม่แนบเอกสาร',''));
+ tool.replaceChildren(new Option('ไม่ใช้แม่แบบ',''));
+ state.docs.forEach((d,i)=>doc.add(new Option(d.name,String(i))));
+ state.tools.forEach((t,i)=>tool.add(new Option(t.name,String(i))));
+ if([...doc.options].some(x=>x.value===oldDoc))doc.value=oldDoc;
+ if([...tool.options].some(x=>x.value===oldTool))tool.value=oldTool;
+}
+function drawDocs(){updateContextOptions();const list=$('document-list');list.replaceChildren();state.docs.forEach((d,i)=>{const b=document.createElement('button');b.type='button';b.className='item';b.textContent='📄 '+d.name;b.onclick=()=>{state.docIndex=i;$('doc-name').value=d.name;$('doc-content').value=d.content;status('เปิด '+d.name)};list.appendChild(b)})}
 $('new-doc').onclick=()=>{state.docIndex=-1;$('doc-name').value='note.txt';$('doc-content').value='';status('สร้างรายการใหม่ได้')};
 $('save-doc').onclick=()=>{const d={name:safeName($('doc-name').value),content:$('doc-content').value};if(state.docIndex<0){state.docs.push(d);state.docIndex=state.docs.length-1}else state.docs[state.docIndex]=d;drawDocs();status('บันทึกในรายการชั่วคราวแล้ว โปรดส่งออกเพื่อเก็บถาวร')};
 $('export-doc').onclick=()=>{download(safeName($('doc-name').value),$('doc-content').value);status('ส่งออกเอกสารแล้ว')};
 $('delete-doc').onclick=()=>{if(state.docIndex<0)return status('ยังไม่ได้เลือกรายการ');if(!confirm('ลบรายการนี้จากหน้าต่าง Qwen3?'))return;state.docs.splice(state.docIndex,1);$('new-doc').click();drawDocs();status('ลบจากรายการแล้ว ไม่กระทบไฟล์ต้นฉบับ')};
 $('doc-file').onchange=async e=>{const f=e.target.files[0];if(!f)return;if(f.size>1048576)return status('ไฟล์ใหญ่เกิน 1 MB');if(!/\.(txt|md|markdown|json|csv|html)$/i.test(f.name))return status('ชนิดไฟล์ไม่รองรับ');$('doc-name').value=safeName(f.name);$('doc-content').value=await f.text();state.docIndex=-1;status('นำเข้าแล้ว กดบันทึกในรายการหากต้องการเก็บในหน้านี้');e.target.value=''};
-function drawTools(){const list=$('tool-list');list.replaceChildren();state.tools.forEach((t,i)=>{const b=document.createElement('button');b.type='button';b.className='item';b.textContent='🧰 '+t.name;b.onclick=()=>{state.toolIndex=i;$('tool-name').value=t.name;$('tool-instruction').value=t.instruction;status('เปิดรายการ '+t.name)};list.appendChild(b)})}
+function drawTools(){updateContextOptions();const list=$('tool-list');list.replaceChildren();state.tools.forEach((t,i)=>{const b=document.createElement('button');b.type='button';b.className='item';b.textContent='🧰 '+t.name;b.onclick=()=>{state.toolIndex=i;$('tool-name').value=t.name;$('tool-instruction').value=t.instruction;status('เปิดรายการ '+t.name)};list.appendChild(b)})}
 $('new-tool').onclick=()=>{state.toolIndex=-1;$('tool-name').value='';$('tool-instruction').value='';status('เพิ่มรายการใหม่ได้')};
 $('save-tool').onclick=()=>{const name=$('tool-name').value.trim();if(!name)return status('กรุณากรอกชื่อเครื่องมือ');const t={name,instruction:$('tool-instruction').value};if(state.toolIndex<0){state.tools.push(t);state.toolIndex=state.tools.length-1}else state.tools[state.toolIndex]=t;drawTools();status('บันทึกรายการชั่วคราวแล้ว')};
 $('delete-tool').onclick=()=>{if(state.toolIndex<0)return status('ยังไม่ได้เลือกรายการ');if(!confirm('ลบเครื่องมือนี้?'))return;state.tools.splice(state.toolIndex,1);$('new-tool').click();drawTools();status('ลบรายการแล้ว')};
