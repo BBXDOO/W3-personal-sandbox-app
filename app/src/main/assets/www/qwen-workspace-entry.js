@@ -18,7 +18,7 @@ window.addEventListener('message',event=>{
   try{
    if(typeof AndroidBridge==='undefined'||typeof AndroidBridge.checkUpdate!=='function')throw Error('Android Bridge ไม่พร้อม');
    AndroidBridge.checkUpdate();
-   activeFrame.contentWindow.postMessage({w3qwen:true,kind:'response',id:d.id,ok:true,message:'กำลังตรวจอัปเดต QW1'},'*');
+   activeFrame.contentWindow.postMessage({w3qwen:true,kind:'response',id:d.id,ok:true,message:'กำลังตรวจอัปเดต'},'*');
   }catch(err){activeFrame.contentWindow.postMessage({w3qwen:true,kind:'response',id:d.id,ok:false,message:err.message},'*')}
   return;
  }
@@ -45,7 +45,7 @@ function openWorkspace(){
  const backdrop=document.createElement('div');backdrop.id=OVERLAY_ID;backdrop.setAttribute('role','dialog');backdrop.setAttribute('aria-modal','true');backdrop.setAttribute('aria-label','Qwen3 Workspace');
  Object.assign(backdrop.style,{position:'fixed',inset:'0',zIndex:'2147483000',background:'rgba(0,0,0,.72)',display:'flex',flexDirection:'column',padding:'max(10px, env(safe-area-inset-top)) 8px max(10px, env(safe-area-inset-bottom))'});
  const bar=document.createElement('div');Object.assign(bar.style,{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'8px 12px',color:'#fff',background:'#17241b',borderRadius:'12px 12px 0 0'});
- const title=document.createElement('strong');title.textContent='💻 Qwen3 Workspace · ต้นแบบ';
+ const title=document.createElement('strong');title.textContent='💻 Qwen3 Workspace · QW2';
  const close=document.createElement('button');close.type='button';close.textContent='✕ ปิด';close.setAttribute('aria-label','ปิด Qwen3 Workspace');Object.assign(close.style,{padding:'9px 12px',background:'#314c3a',color:'#fff',border:'0',borderRadius:'8px'});
  const frame=document.createElement('iframe');frame.title='พื้นที่ทำงาน Qwen3';frame.src='./ai-workspace-preview.html';frame.setAttribute('sandbox','allow-scripts allow-downloads');activeFrame=frame;Object.assign(frame.style,{border:'0',background:'#111714',width:'100%',flex:'1',minHeight:'0',borderRadius:'0 0 12px 12px'});
  const dismiss=()=>{activeFrame=null;backdrop.remove();document.removeEventListener('keydown',escapeHandler)};
