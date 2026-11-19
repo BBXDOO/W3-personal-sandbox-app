@@ -30,7 +30,14 @@
 'use strict';
 const $=id=>document.getElementById(id), state={docs:[],tools:[],chat:[],docIndex:-1,toolIndex:-1};
 function status(s){$('status').textContent=s}
-function download(name,content,type='text/plain'){const blob=new Blob([content],{type:type+';charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),3000)}
+function download(name,content,type='text/plain'){
+ if(window.parent!==window){
+  qwenRequest('export',JSON.stringify({name,content,mime:type})).then(()=>status('เปิดหน้าบันทึกไฟล์ใน Android แล้ว')).catch(e=>status('ส่งออกไม่สำเร็จ: '+e.message));
+  return;
+ }
+ const blob=new Blob([content],{type:type+';charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');
+ a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),3000);
+}
 function safeName(s){return (s||'note.txt').replace(/[\\/:*?"<>|]/g,'_').slice(0,100)}
 document.querySelectorAll('.tab').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('.tab').forEach(x=>x.setAttribute('aria-selected',String(x===b)));document.querySelectorAll('.panel').forEach(x=>x.hidden=x.id!==b.dataset.panel);status('')}));
 let requestCounter=0;
