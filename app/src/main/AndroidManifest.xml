@@ -1,7 +1,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
-    <application android:allowBackup="false" android:label="W3 Personal Sandbox"
+    <application android:allowBackup="false" android:label="${applicationName}"
         android:theme="@style/W3Theme"
         android:usesCleartextTraffic="false" android:networkSecurityConfig="@xml/qwen_network_security">
         <activity android:name=".MainActivity" android:exported="true">
@@ -11,7 +11,7 @@
             </intent-filter>
         </activity>
         <provider android:name=".UpdateApkProvider"
-            android:authorities="com.w3personalsandbox.app.updates"
+            android:authorities="${applicationId}.updates"
             android:exported="false" android:grantUriPermissions="true" />
     </application>
 </manifest>
