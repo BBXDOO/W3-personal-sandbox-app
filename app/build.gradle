@@ -30,10 +30,10 @@ android {
     }
     buildTypes {
         debug {
-            versionNameSuffix '-QW2'
-            // Install QW2 alongside the owner's existing Sandbox without replacing its data.
-            applicationIdSuffix '.qw2'
-            resValue 'string', 'qw1_app_name', 'QW2'
+            versionNameSuffix '-QW3'
+            // Install QW3 alongside the owner's existing Sandbox without replacing its data.
+            applicationIdSuffix '.qw3'
+            resValue 'string', 'qw1_app_name', 'QW3'
         }
         release {
             minifyEnabled false
