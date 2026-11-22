@@ -1,4 +1,4 @@
-import{r as ge,j as W}from"./index-C3ZAGC1p.js";/**
+import{r as ge,j as W}from"./index-jna7HQ63.js";/**
  * Copyright (c) 2014-2024 The xterm.js authors. All rights reserved.
  * @license MIT
  *
