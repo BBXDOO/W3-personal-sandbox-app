@@ -1,14 +1,16 @@
-# ตรวจคู่มือก่อนออก W3 Personal Sandbox แต่ละรุ่น
+# ตรวจคู่มือและ build Personal Sandbox
 
-1. อ่าน diff ของเมนู ช่องกรอก ข้อมูลเข้า ผลลัพธ์ และข้อจำกัดที่เปลี่ยนจริง
-2. แก้ `docs/คู่มือใช้งานภาษาไทย.md` ให้บอกทางเข้าและวิธีใช้ครบทุกเมนู รวมเมนูย่อยในทดลอง
-3. ตั้งรุ่นใน `core/appVersion.ts`, Android `versionCode/versionName` และสอง marker ในคู่มือให้ตรงกัน
-4. อ่านทบทวนเนื้อหาเทียบกับโค้ดแล้วจึงรัน `npm run review:manual` เพื่อบันทึก fingerprint ของการตรวจครั้งนี้
-5. รัน `npm run lint`, `npm run check:manual` และ `sh android-app/sync-web-assets.sh` ซึ่งสร้างเว็บใหม่และตรวจ assets
-6. ส่ง web assets, คู่มือ, manifest, รุ่น Android และ check-release.py ไปรีโป้สร้าง APK ด้วยกัน อย่าคัดลอกเฉพาะคู่มือ
-7. Workflow สร้าง APK ต้องรัน `python3 check-release.py` ก่อน Gradle ถ้าพบคู่มือ/รุ่น/ไฟล์ไม่ตรงให้หยุดแก้ก่อนเผยแพร่
-8. ตรวจคู่มือในแอปและในกิทก่อนเผยแพร่รุ่น กรณีเปลี่ยนโค้ดหลังตรวจทาน ขั้น check:manual จะไม่ผ่านจนกว่าจะทบทวนใหม่
+รันคำสั่งจาก root ของรีโป้ W3-personal-sandbox-app
 
-ต้นฉบับคู่มือมีไฟล์เดียว Public user-guide.md เป็นสำเนาที่สคริปต์สร้างเพื่อใช้ตรวจแพ็กเกจ การแสดงคู่มือทั้งสองจุดในแอปนำเข้าต้นฉบับเดียวกันและใช้ตัวอ่านเดียวกัน
+1. อ่าน diff และทบทวนทุกเมนูที่เปลี่ยน รวมข้อมูลเข้า ผลลัพธ์ และข้อจำกัด
+2. แก้ต้นฉบับ `web/docs/คู่มือใช้งานภาษาไทย.md`
+3. ตั้งรุ่นใน `web/core/appVersion.ts`, `app/build.gradle`, `package.json` และ marker รุ่นทั้งสองในคู่มือให้ตรงกัน
+4. รัน `npm run review:manual` หลังอ่านทบทวนเพื่อบันทึก fingerprint และสร้าง `web/public/user-guide.md`
+5. รัน `npm run lint`, `npm run check:manual`, `npm run build` และ `npm run verify:release`
+6. Commit ซอร์สพร้อม `app/src/main/assets/www/` และ `USER_GUIDE_TH.md` ที่สร้างใหม่ CI จะ rebuild และตรวจ diff ของไฟล์เหล่านี้
+7. สร้าง APK ทดสอบด้วย Gradle หรือ GitHub Actions ตรวจหน้าจอ การบันทึก และ JSON round trip บนโทรศัพท์
+8. ตรวจคู่มือในแอป ตรวจลายเซ็นเดิม และทดสอบอัปเดตทับก่อนเผยแพร่ Release ด้วยกุญแจเจ้าของ
 
-Fingerprint ตรวจการเปลี่ยนเนื้อหาได้ แต่ไม่เข้าใจว่าคำอธิบายถูกทุกประโยค ผู้พัฒนาต้องทบทวนรายละเอียดจริง ไม่เพียงเปลี่ยนเลขรุ่นเพื่อให้ผ่าน
+`check-release.py` ตรวจเวอร์ชันและคู่มือใน APK ก่อน Gradle ส่วน `web/scripts/manual-release.mjs` ตรวจซอร์สและ fingerprint ด้วย
+
+ต้นฉบับคู่มืออยู่ใน web/docs สำเนาใน public และ Android assets สร้างผ่านคำสั่งข้างต้น การทบทวนเนื้อหาต้องทำโดยผู้พัฒนาก่อนบันทึก fingerprint

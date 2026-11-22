@@ -1,7 +1,7 @@
 {
-  "name": "copy-of-w3.idp-studio",
+  "name": "w3-personal-sandbox-web",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.57.0",
   "type": "module",
   "scripts": {
     "dev": "vite",

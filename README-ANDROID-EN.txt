@@ -1,6 +1,22 @@
-W3 Personal Sandbox Android wrapper. Open this folder in Android Studio and
-build app-debug.apk. Web assets are packaged in app/src/main/assets/www.
-The WebView only loads the built-in appassets.androidplatform.net path. File
-selection uses Android's document picker; JSON export uses ACTION_CREATE_DOCUMENT.
-No Termux server or INTERNET permission is required. Keep the same package ID
-and signing key for updates; debug keys are not suitable for a public release.
+W3 Personal Sandbox v57 (0.57)
+
+This repository contains the React/TypeScript source in web/ and the Android project at its root.
+Use Node.js 24, Python 3, JDK 17, Android SDK 35 and Gradle 8.9.
+
+From the repository root:
+  npm ci --prefix web
+  npm run lint
+  npm run check:manual
+  npm run build
+  npm run verify:release
+  gradle --no-daemon :app:assembleDebug
+
+Web assets are packaged in app/src/main/assets/www. The WebView loads the
+built-in https://appassets.androidplatform.net/assets/www/ origin.
+File selection uses Android's document picker. Export uses ACTION_CREATE_DOCUMENT.
+INTERNET permission is used for GitHub release checks and APK downloads.
+The packaged editor opens offline. Termux terminal integration is planned.
+
+GitHub Actions rebuilds web/ and checks committed assets before compiling Android.
+Keep the existing application ID and release signing key when updating installed apps.
+See README.md and RELEASE_CHECKLIST_TH.md for the development and release process.
