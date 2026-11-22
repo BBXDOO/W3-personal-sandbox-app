@@ -20,13 +20,13 @@ if (!version || !versionName || Number(gradle.match(/versionCode (\d+)/)?.[1]) !
 const manual = read('docs/คู่มือใช้งานภาษาไทย.md');
 if (!manual.includes(`<!-- manual-version: ${version} -->`) || !manual.includes(`<!-- reviewed-version: ${version} -->`)) fail('guide version/review is missing');
 const nav = [...read('features/editor/LeftNav.tsx').matchAll(/\{ id: '([^']+)', label:/g)].map(match => match[1]);
-const required = [...nav, 'library', 'shared', 'battle', 'commands', 'update', 'storage', 'tileLibrary'];
+const required = [...nav, 'library', 'shared', 'battle', 'commands', 'update', 'storage', 'tileLibrary', 'terminal'];
 for (const menu of required) {
   const marker = `<!-- menu: ${menu} -->`;
   if (!manual.includes(marker) || manual.split(marker)[1].split(/\n## /)[0].trim().length < 150) fail(`missing detailed section: ${menu}`);
 }
 // UI AND runtime changes invalidate the last explicit human/agent review.
-const inputs = [...walk('features'), ...walk('ui'), ...walk('core'), 'types.ts', 'index.css', 'App.tsx', 'android-app/app/src/main/java/com/w3personalsandbox/app/MainActivity.java'].sort();
+const inputs = [...walk('features'), ...walk('ui'), ...walk('core'), 'types.ts', 'index.css', 'App.tsx', 'android-app/app/src/main/java/com/w3personalsandbox/app/MainActivity.java', 'android-app/app/src/main/java/com/w3personalsandbox/app/TerminalTransport.java', '../tools/terminal/server.py', 'android-app/app/src/main/AndroidManifest.xml', 'android-app/app/src/main/res/xml/network_security_config.xml'].sort();
 const expected = {
   schema: 'w3.sandbox.manual-release.v1', versionCode: version, versionName,
   manualSha256: hash(manual), sourceSha256: hash(inputs.map(path => `${path}\0${hash(read(path))}`).join('\n')),

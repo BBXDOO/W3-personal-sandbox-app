@@ -10,7 +10,7 @@ export interface RunPresentation {
   backgroundColor?: string;
   backgroundAssetId?: string;
 }
-export type TabId = 'home' | 'story' | 'character' | 'board' | 'location' | 'item' | 'event' | 'rule' | 'commonPlay' | 'play' | 'card';
+export type TabId = 'home' | 'story' | 'character' | 'board' | 'location' | 'item' | 'event' | 'rule' | 'commonPlay' | 'play' | 'card' | 'terminal';
 
 export interface AttributeDef {
   key: string; // e.g., 'STR'

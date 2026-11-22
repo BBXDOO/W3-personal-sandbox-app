@@ -1,9 +1,9 @@
 {
   "schema": "w3.sandbox.manual-release.v1",
-  "versionCode": 57,
-  "versionName": "0.57",
-  "manualSha256": "3246a789511779856785128161afa16996b3a708654fcf4ac201be335ea82f21",
-  "sourceSha256": "112572326c1b2f3e598381dd434b6e280363c0b3282a1e685cdb7c666efc0629",
+  "versionCode": 58,
+  "versionName": "0.58",
+  "manualSha256": "ca14f2d34c97e1b278b6a077276ad64580f7aeb1d094466caf56f63c0df97373",
+  "sourceSha256": "f3180c2b56a322315319c26382f03b51ad920a75733b54b0ddb6bd193b6fd9f7",
   "menus": [
     "home",
     "story",
@@ -22,6 +22,7 @@
     "commands",
     "update",
     "storage",
-    "tileLibrary"
+    "tileLibrary",
+    "terminal"
   ]
 }
