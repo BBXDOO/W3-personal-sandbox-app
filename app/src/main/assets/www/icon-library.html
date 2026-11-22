@@ -11,20 +11,27 @@
 <div class="row"><label>X <input id="crop-x" type="number" min="0" value="0"></label><label>Y <input id="crop-y" type="number" min="0" value="0"></label><label>W <input id="crop-w" type="number" min="1" value="32"></label><label>H <input id="crop-h" type="number" min="1" value="32"></label></div>
 <div class="row"><img id="crop" alt="ตัวอย่างไอคอนที่ตัด"><div><label>ชื่อไอคอน <input id="icon-name" maxlength="60" placeholder="เช่น ต้นไม้"></label><label>ประเภท <input id="category" list="categories" maxlength="40" value="Game 2D"></label><datalist id="categories"></datalist></div></div>
 <div class="row"><button id="save-icon" type="button" class="primary">บันทึกไอคอนที่เลือก</button></div></div></div></section>
-<section><h2>2. คลังไอคอน</h2><div class="row"><label>กรองประเภท <select id="filter"><option value="">ทุกประเภท</option></select></label><label>ค้นหา <input id="search" placeholder="ชื่อไอคอน"></label><label for="restore" class="file-label">นำเข้าชุดสำรอง JSON</label><input id="restore" type="file" accept=".json,application/json"></div><div id="gallery" class="gallery"></div><div class="row"><button id="insert-story" type="button" class="primary">แทรกในเนื้อเรื่องที่เคอร์เซอร์</button><small>เปิดจากหน้าเขียนเนื้อเรื่องก่อน · รูปจะถูกฝังใน Markdown</small></div>
+<section><h2>2. คลังไอคอน</h2><div class="row"><label>กรองประเภท <select id="filter"><option value="">ทุกประเภท</option></select></label><label>ค้นหา <input id="search" placeholder="ชื่อไอคอน"></label><label for="restore" class="file-label">นำเข้าชุดสำรอง JSON</label><input id="restore" type="file" accept=".json,application/json"></div><div id="gallery" class="gallery"></div><div class="row"><label>Icon ID (ใช้ในกฎเกม) <input id="icon-id" readonly placeholder="เลือกไอคอนจากคลัง"></label><button id="copy-id" type="button">คัดลอก ID</button></div>
+<div class="row"><button id="insert-story" type="button" class="primary">แทรกในเนื้อเรื่องที่เคอร์เซอร์</button><small>เปิดจากหน้าเขียนเนื้อเรื่องก่อน · รูปจะถูกฝังใน Markdown</small></div>
 <div class="row"><button id="download-icon" type="button">ดาวน์โหลด PNG ที่เลือก</button><button id="delete-icon" type="button">ลบไอคอนที่เลือก</button><span id="count" class="muted"></span></div></section>
-<section><h2>3. กระดานทดลองวางไอคอน</h2><p class="muted">แตะช่องเพื่อกำหนดเคอร์เซอร์ · กดวางที่เคอร์เซอร์ หรือวางตำแหน่งล่าสุด (ใช้งานได้แม้ปิดแล้วเปิดหน้าต่างใหม่)</p>
+<section><h2>3. ผูกไอคอนกับข้อมูลเกม (ทะเบียนอ้างอิง)</h2>
+<p class="muted">กำหนดประเภทและรหัสข้อมูลเป้าหมายเพื่อส่งออกให้ระบบเกมอ้างอิงด้วย Icon ID · ยังไม่เขียนข้อมูล Play ของ v57 อัตโนมัติ</p>
+<div class="row"><label>ประเภทข้อมูล <select id="bind-type"><option value="character">ตัวละคร</option><option value="skill">สกิล / การ์ด</option><option value="item">ไอเทม</option><option value="story">เนื้อเรื่อง</option><option value="board">บอร์ด</option><option value="location">สถานที่</option><option value="event">เหตุการณ์</option><option value="rule">กฎ</option><option value="document">เอกสาร</option></select></label>
+<label>รหัสข้อมูลในเกม <input id="entity-id" maxlength="100" placeholder="เช่น SKILL_001"></label><button id="bind-icon" class="primary" type="button">ผูก Icon ID</button></div>
+<div id="binding-list" class="gallery"></div><div class="row"><button id="export-bindings" type="button">ส่งออกทะเบียนสำหรับเกม JSON</button></div></section>
+<section><h2>4. กระดานทดลองวางไอคอน</h2><p class="muted">แตะช่องเพื่อกำหนดเคอร์เซอร์ · กดวางที่เคอร์เซอร์ หรือวางตำแหน่งล่าสุด (ใช้งานได้แม้ปิดแล้วเปิดหน้าต่างใหม่)</p>
 <div class="row"><label>คอลัมน์ <input id="cols" type="number" min="4" max="30" value="12"></label><label>แถว <input id="rows" type="number" min="4" max="30" value="8"></label><button id="resize-board" type="button">ปรับขนาดบอร์ด</button></div>
 <div class="row"><button id="place-cursor" type="button" class="primary">วางที่เคอร์เซอร์</button><button id="place-last" type="button">วางตำแหน่งล่าสุด</button><button id="erase-cell" type="button">ลบช่องที่เลือก</button><button id="export-board" type="button">ส่งออกแผนผัง JSON</button><span id="position" class="tag">เคอร์เซอร์: 1,1</span></div><div id="board" class="board" role="grid" aria-label="บอร์ดวางไอคอน"></div><p class="hint">บอร์ดส่วนนี้เป็นตัวทดลองใน Icon Library ยังไม่ได้แก้ข้อมูลบอร์ดหลักของ Sandbox โดยอัตโนมัติ</p></section>
 <div id="status" role="status" aria-live="polite"></div></main>
 <script>
 'use strict';
 const $=id=>document.getElementById(id), KEY='w3-icon-library-il1';
-const state={icons:[],selected:null,board:{cols:12,rows:8,cells:{}},cursor:{x:0,y:0},last:{x:0,y:0}};
+const state={icons:[],selected:null,board:{cols:12,rows:8,cells:{}},cursor:{x:0,y:0},last:{x:0,y:0},bindings:[]};
 let source=null,selection={x:0,y:0,w:32,h:32},dragStart=null;
 function status(s){$('status').textContent=s}
 function persist(){try{localStorage.setItem(KEY,JSON.stringify(state));return true}catch(e){status('พื้นที่เก็บข้อมูลเต็ม: โปรดสำรอง JSON ก่อนปิด');return false}}
-function restoreSaved(){try{const saved=JSON.parse(localStorage.getItem(KEY)||'null');if(saved&&Array.isArray(saved.icons)&&saved.board){state.icons=saved.icons.filter(validIcon);state.board=saved.board;state.cursor=saved.cursor||state.cursor;state.last=saved.last||state.last;}}catch(e){status('อ่านข้อมูลเดิมไม่ได้')}}
+function restoreSaved(){try{const saved=JSON.parse(localStorage.getItem(KEY)||'null');if(saved&&Array.isArray(saved.icons)&&saved.board){state.icons=saved.icons.filter(validIcon);state.board=saved.board;state.cursor=saved.cursor||state.cursor;state.last=saved.last||state.last;state.bindings=Array.isArray(saved.bindings)?saved.bindings.filter(validBinding):[];}}catch(e){status('อ่านข้อมูลเดิมไม่ได้')}}
+function validBinding(b){return b&&typeof b.type==='string'&&/^(character|skill|item|story|board|location|event|rule|document)$/.test(b.type)&&typeof b.entityId==='string'&&b.entityId.length<=100&&typeof b.iconId==='string'}
 function validIcon(i){return i&&typeof i.id==='string'&&typeof i.name==='string'&&typeof i.category==='string'&&typeof i.data==='string'&&/^data:image\/png;base64,/.test(i.data)&&i.data.length<1100000}
 function download(name,content,mime){const blob=new Blob([content],{type:mime}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),3000)}
 function safe(s){return String(s||'icon').replace(/[^\p{L}\p{N}_.-]+/gu,'_').slice(0,70)}
@@ -39,15 +46,17 @@ function point(event){const r=$('sheet').getBoundingClientRect();return {x:Math.
 $('sheet').onpointerdown=e=>{if(!source)return;dragStart=point(e);$('sheet').setPointerCapture(e.pointerId)};
 $('sheet').onpointermove=e=>{if(!dragStart)return;const p=point(e);setCrop(Math.min(p.x,dragStart.x),Math.min(p.y,dragStart.y),Math.abs(p.x-dragStart.x)+1,Math.abs(p.y-dragStart.y)+1)};
 $('sheet').onpointerup=()=>{dragStart=null};
-function makeIcon(x,y,w,h,name,category){const c=document.createElement('canvas');c.width=w;c.height=h;c.getContext('2d').drawImage(source,x,y,w,h,0,0,w,h);const data=c.toDataURL('image/png');if(data.length>1100000)throw Error('ไอคอนมีขนาดใหญ่เกินไป');return{id:crypto.randomUUID?crypto.randomUUID():String(Date.now())+'-'+Math.random(),name,category,data,w,h}}
+function makeIcon(x,y,w,h,name,category){const c=document.createElement('canvas');c.width=w;c.height=h;c.getContext('2d').drawImage(source,x,y,w,h,0,0,w,h);const data=c.toDataURL('image/png');if(data.length>1100000)throw Error('ไอคอนมีขนาดใหญ่เกินไป');return{id:newIconId(),name,category,data,w,h}}
+function newIconId(){const id=crypto.randomUUID?crypto.randomUUID():String(Date.now())+'-'+Math.random().toString(36).slice(2);return 'ico_'+id}
 function addIcon(icon){state.icons.push(icon);state.selected=icon.id;persist()}
 $('save-icon').onclick=()=>{if(!source)return status('กรุณาเลือกรูปก่อน');values();try{addIcon(makeIcon(selection.x,selection.y,selection.w,selection.h,$('icon-name').value.trim()||'icon-'+(state.icons.length+1),$('category').value.trim()||'อื่น ๆ'));render();status('บันทึกไอคอนแล้ว')}catch(e){status(e.message)}};
 $('grid-cut').onclick=()=>{if(!source)return status('กรุณาเลือกรูปก่อน');const w=+$('tile-w').value,h=+$('tile-h').value;if(!Number.isInteger(w)||!Number.isInteger(h)||w<1||h<1)return status('ขนาดช่องไม่ถูกต้อง');const count=Math.floor(source.width/w)*Math.floor(source.height/h);if(count>400)return status('จำกัด 400 ช่องต่อครั้ง โปรดปรับขนาดช่อง');if(!count)return status('ช่องใหญ่กว่าภาพ');const category=$('category').value.trim()||'อื่น ๆ';try{for(let y=0;y+h<=source.height;y+=h)for(let x=0;x+w<=source.width;x+=w)addIcon(makeIcon(x,y,w,h,'tile-'+x+'-'+y,category));render();status('ตัดและบันทึก '+count+' ไอคอนแล้ว')}catch(e){render();status('ตัดได้บางส่วน: '+e.message)}};
 function selectedIcon(){return state.icons.find(i=>i.id===state.selected)}
-function renderGallery(){categoryList();const gallery=$('gallery');gallery.replaceChildren();const filter=$('filter').value,search=$('search').value.toLowerCase();state.icons.filter(i=>(!filter||i.category===filter)&&i.name.toLowerCase().includes(search)).forEach(i=>{const b=document.createElement('button');b.type='button';b.className='tile';b.setAttribute('aria-selected',String(i.id===state.selected));const img=document.createElement('img');img.src=i.data;img.alt='';const span=document.createElement('span');span.textContent=i.name;const cat=document.createElement('small');cat.textContent=i.category;b.append(img,span,cat);b.onclick=()=>{state.selected=i.id;persist();renderGallery();status('เลือก '+i.name)};gallery.appendChild(b)});$('count').textContent=state.icons.length+' ไอคอน'}
+$('copy-id').onclick=async()=>{const i=selectedIcon();if(!i)return status('เลือกไอคอนก่อน');try{await navigator.clipboard.writeText(i.id);status('คัดลอก Icon ID แล้ว')}catch(_){status('Icon ID: '+i.id)}};
+function renderGallery(){categoryList();$('icon-id').value=selectedIcon()?.id||'';renderBindings();const gallery=$('gallery');gallery.replaceChildren();const filter=$('filter').value,search=$('search').value.toLowerCase();state.icons.filter(i=>(!filter||i.category===filter)&&i.name.toLowerCase().includes(search)).forEach(i=>{const b=document.createElement('button');b.type='button';b.className='tile';b.setAttribute('aria-selected',String(i.id===state.selected));const img=document.createElement('img');img.src=i.data;img.alt='';const span=document.createElement('span');span.textContent=i.name;const cat=document.createElement('small');cat.textContent=i.category;b.append(img,span,cat);b.onclick=()=>{state.selected=i.id;persist();renderGallery();status('เลือก '+i.name)};gallery.appendChild(b)});$('count').textContent=state.icons.length+' ไอคอน'}
 $('filter').onchange=renderGallery;$('search').oninput=renderGallery;
 $('download-icon').onclick=()=>{const i=selectedIcon();if(!i)return status('เลือกไอคอนก่อน');const a=document.createElement('a');a.href=i.data;a.download=safe(i.name)+'.png';a.click()};
-$('delete-icon').onclick=()=>{const i=selectedIcon();if(!i)return status('เลือกไอคอนก่อน');if(!confirm('ลบ '+i.name+' จากคลัง?'))return;state.icons=state.icons.filter(x=>x.id!==i.id);state.selected=null;persist();render();status('ลบไอคอนแล้ว (ตำแหน่งบนบอร์ดยังอ้างอิง ID เดิม)')};
+$('delete-icon').onclick=()=>{const i=selectedIcon();if(!i)return status('เลือกไอคอนก่อน');if(!confirm('ลบ '+i.name+' จากคลัง?'))return;state.icons=state.icons.filter(x=>x.id!==i.id);state.bindings=state.bindings.filter(b=>b.iconId!==i.id);state.selected=null;persist();render();status('ลบไอคอนแล้ว (ตำแหน่งบนบอร์ดยังอ้างอิง ID เดิม)')};
 $('insert-story').onclick=()=>{
  const i=selectedIcon();if(!i)return status('เลือกไอคอนจากคลังก่อน');
  if(i.data.length>240000)return status('ภาพใหญ่เกินสำหรับฝังในเนื้อเรื่อง โปรดตัด/ลดขนาดก่อน (แนะนำไม่เกิน 180 KB)');
@@ -60,15 +69,36 @@ window.addEventListener('message',e=>{
  if(e.source!==window.parent||!e.data||e.data.w3icon!==true||e.data.kind!=='insert-result')return;
  status(e.data.ok?'แทรกลงตำแหน่งเคอร์เซอร์แล้ว · กรุณาบันทึกเนื้อเรื่อง':e.data.message||'ไม่สามารถแทรกได้');
 });
+function renderBindings(){
+ const box=$('binding-list');box.replaceChildren();
+ for(const b of state.bindings){
+  const i=state.icons.find(x=>x.id===b.iconId);
+  const tile=document.createElement('div');tile.className='tile';
+  if(i){const img=document.createElement('img');img.src=i.data;img.alt=i.name;tile.append(img)}
+  const label=document.createElement('span');label.textContent=b.type+' · '+b.entityId;
+  const sub=document.createElement('small');sub.textContent=b.iconId;
+  const remove=document.createElement('button');remove.type='button';remove.textContent='ยกเลิกผูก';remove.onclick=()=>{state.bindings=state.bindings.filter(x=>x!==b);persist();renderBindings()};
+  tile.append(label,sub,remove);box.append(tile);
+ }
+}
+$('bind-icon').onclick=()=>{
+ const i=selectedIcon(),type=$('bind-type').value,entityId=$('entity-id').value.trim();
+ if(!i)return status('เลือกไอคอนก่อน');
+ if(!/^[A-Za-z0-9_.:-]{1,100}$/.test(entityId))return status('รหัสข้อมูลต้องเป็นตัวอักษรอังกฤษ ตัวเลข หรือ _ . : - (1–100 ตัว)');
+ state.bindings=state.bindings.filter(b=>!(b.type===type&&b.entityId===entityId));
+ state.bindings.push({type,entityId,iconId:i.id});
+ persist();renderBindings();status('บันทึกการผูก '+type+':'+entityId+' → '+i.id);
+};
+$('export-bindings').onclick=()=>download('w3-icon-bindings-IL1.json',JSON.stringify({schema:'w3.icon-bindings.v1',bindings:state.bindings,icons:state.icons.map(({id,name,category,data,w,h})=>({id,name,category,data,w,h}))},null,2),'application/json');
 function pos(){const x=Math.max(0,Math.min(state.board.cols-1,state.cursor.x)),y=Math.max(0,Math.min(state.board.rows-1,state.cursor.y));state.cursor={x,y};$('position').textContent='เคอร์เซอร์: '+(x+1)+','+(y+1)+' · ล่าสุด: '+(state.last.x+1)+','+(state.last.y+1)}
 function renderBoard(){const b=$('board');b.replaceChildren();b.style.setProperty('--cols',state.board.cols);const icons=new Map(state.icons.map(i=>[i.id,i]));for(let y=0;y<state.board.rows;y++)for(let x=0;x<state.board.cols;x++){const cell=document.createElement('button');cell.type='button';cell.className='cell'+(state.cursor.x===x&&state.cursor.y===y?' active':'');cell.setAttribute('role','gridcell');cell.setAttribute('aria-label','ช่อง '+(x+1)+','+(y+1));const i=icons.get(state.board.cells[x+','+y]);if(i){const img=document.createElement('img');img.src=i.data;img.alt=i.name;cell.append(img)}cell.onclick=()=>{state.cursor={x,y};persist();renderBoard()};b.appendChild(cell)}pos()}
 function place(p){const i=selectedIcon();if(!i)return status('เลือกไอคอนจากคลังก่อน');if(p.x>=state.board.cols||p.y>=state.board.rows||p.x<0||p.y<0)return status('ตำแหน่งอยู่นอกบอร์ด');state.board.cells[p.x+','+p.y]=i.id;state.last={...p};state.cursor={...p};persist();renderBoard();status('วาง '+i.name+' ที่ '+(p.x+1)+','+(p.y+1))}
 $('place-cursor').onclick=()=>place(state.cursor);$('place-last').onclick=()=>place(state.last);
 $('erase-cell').onclick=()=>{delete state.board.cells[state.cursor.x+','+state.cursor.y];persist();renderBoard();status('ลบช่องที่เลือกแล้ว')};
 $('resize-board').onclick=()=>{const cols=+$('cols').value,rows=+$('rows').value;if(!Number.isInteger(cols)||!Number.isInteger(rows)||cols<4||cols>30||rows<4||rows>30)return status('ขนาดบอร์ดต้องอยู่ระหว่าง 4 ถึง 30');state.board.cols=cols;state.board.rows=rows;for(const k of Object.keys(state.board.cells)){const [x,y]=k.split(',').map(Number);if(x>=cols||y>=rows)delete state.board.cells[k]}persist();renderBoard()};
-$('backup').onclick=()=>download('w3-icon-library-IL1.json',JSON.stringify({version:1,icons:state.icons,board:state.board,cursor:state.cursor,last:state.last},null,2),'application/json');
+$('backup').onclick=()=>download('w3-icon-library-IL1.json',JSON.stringify({version:1,icons:state.icons,board:state.board,cursor:state.cursor,last:state.last,bindings:state.bindings},null,2),'application/json');
 $('export-board').onclick=()=>download('w3-icon-board-IL1.json',JSON.stringify({version:1,board:state.board,icons:state.icons.map(({id,name,category,w,h})=>({id,name,category,w,h}))},null,2),'application/json');
-$('restore').onchange=async e=>{const f=e.target.files?.[0];if(!f)return;try{if(f.size>30*1024*1024)throw Error('ไฟล์สำรองใหญ่เกิน 30 MB');const d=JSON.parse(await f.text());if(d.version!==1||!Array.isArray(d.icons)||d.icons.length>2000||!d.icons.every(validIcon)||!d.board||!Number.isInteger(d.board.cols)||!Number.isInteger(d.board.rows)||d.board.cols<4||d.board.cols>30||d.board.rows<4||d.board.rows>30||typeof d.board.cells!=='object'||!d.board.cells)throw Error('ข้อมูลไม่ใช่ชุดสำรอง IL1');if(!confirm('แทนที่คลังและบอร์ดปัจจุบันด้วยข้อมูลจากไฟล์?'))return;state.icons=d.icons;state.board=d.board;state.selected=null;state.cursor=d.cursor||{x:0,y:0};state.last=d.last||{x:0,y:0};persist();render();status('นำเข้าชุดสำรองแล้ว '+d.icons.length+' ไอคอน')}catch(err){status('นำเข้าไม่สำเร็จ: '+err.message)}e.target.value=''};
+$('restore').onchange=async e=>{const f=e.target.files?.[0];if(!f)return;try{if(f.size>30*1024*1024)throw Error('ไฟล์สำรองใหญ่เกิน 30 MB');const d=JSON.parse(await f.text());if(d.version!==1||!Array.isArray(d.icons)||d.icons.length>2000||!d.icons.every(validIcon)||!d.board||!Number.isInteger(d.board.cols)||!Number.isInteger(d.board.rows)||d.board.cols<4||d.board.cols>30||d.board.rows<4||d.board.rows>30||typeof d.board.cells!=='object'||!d.board.cells)throw Error('ข้อมูลไม่ใช่ชุดสำรอง IL1');if(!confirm('แทนที่คลังและบอร์ดปัจจุบันด้วยข้อมูลจากไฟล์?'))return;state.icons=d.icons;state.board=d.board;state.selected=null;state.cursor=d.cursor||{x:0,y:0};state.last=d.last||{x:0,y:0};state.bindings=Array.isArray(d.bindings)?d.bindings.filter(validBinding):[];persist();render();status('นำเข้าชุดสำรองแล้ว '+d.icons.length+' ไอคอน')}catch(err){status('นำเข้าไม่สำเร็จ: '+err.message)}e.target.value=''};
 function render(){renderGallery();$('cols').value=state.board.cols;$('rows').value=state.board.rows;renderBoard()}
 restoreSaved();drawSheet();render();status('พร้อมใช้งาน · ข้อมูลเก็บในเครื่องนี้ โปรดสำรอง JSON เป็นระยะ');
 </script></body></html>
