@@ -57,6 +57,10 @@ final class TerminalTransport {
         });
     }
 
+    void permissionDenied() {
+        notifySetup("ยังไม่ได้รับสิทธิ์ Run commands in Termux โปรดอนุญาตในหน้าสิทธิ์เพิ่มเติมของแอป Sandbox แล้วกดเตรียม session อีกครั้ง");
+    }
+
     void prepare() {
         activity.runOnUiThread(() -> {
             if (activity.getPackageManager().getLaunchIntentForPackage("com.termux") == null) {
