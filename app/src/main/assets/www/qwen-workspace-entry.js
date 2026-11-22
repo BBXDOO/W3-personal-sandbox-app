@@ -1,7 +1,28 @@
 /* W3 Qwen3 Workspace entry: additive UI only; never intercept Sandbox events. */
 (()=>{'use strict';
 const ENTRY_ID='w3-qwen-entry',OVERLAY_ID='w3-qwen-overlay';
-let activeFrame=null;
+let activeFrame=null,storyTarget=null,storySelection=null;
+document.addEventListener('focusin',e=>{
+ const t=e.target;
+ if(t&&t.tagName==='TEXTAREA'&&document.getElementById('root')?.contains(t)){
+  storyTarget=t;storySelection={start:t.selectionStart,end:t.selectionEnd};
+ }
+},true);
+document.addEventListener('selectionchange',()=>{
+ if(storyTarget?.tagName==='TEXTAREA'&&document.activeElement===storyTarget)
+  storySelection={start:storyTarget.selectionStart,end:storyTarget.selectionEnd};
+});
+function insertStoryMarkdown(markdown){
+ const t=storyTarget;
+ if(!t||!t.isConnected||!document.getElementById('root')?.contains(t)||t.tagName!=='TEXTAREA')throw Error('เปิดโหมดเขียนเนื้อเรื่อง แล้วแตะตำแหน่งเคอร์เซอร์ก่อน');
+ const v=t.value,at=storySelection||{start:t.selectionStart,end:t.selectionEnd};
+ if(!Number.isInteger(at.start)||!Number.isInteger(at.end)||at.start<0||at.end>v.length)throw Error('ไม่พบตำแหน่งเคอร์เซอร์ที่ถูกต้อง');
+ const next=v.slice(0,at.start)+markdown+v.slice(at.end);
+ if(next.length>2000000)throw Error('เนื้อเรื่องมีขนาดใหญ่เกินไป');
+ Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype,'value').set.call(t,next);
+ t.dispatchEvent(new Event('input',{bubbles:true}));
+ storySelection={start:at.start+markdown.length,end:at.start+markdown.length};
+}
 window.w3QwenNativeResult=function(json){
  try{
   const data=JSON.parse(json);
@@ -12,6 +33,15 @@ window.w3QwenNativeResult=function(json){
 window.addEventListener('message',event=>{
  if(!activeFrame||event.source!==activeFrame.contentWindow)return;
  const d=event.data;
+ if(d&&d.w3icon===true&&d.kind==='insert-story'){
+  let ok=false,message='';
+  try{
+   if(typeof d.markdown!=='string'||d.markdown.length>250000||!/^!\\[[^\\]]{0,70}\\]\\(data:image\\/png;base64,[A-Za-z0-9+/=]+\\)$/.test(d.markdown))throw Error('ข้อมูลภาพไม่ถูกต้อง');
+   insertStoryMarkdown(d.markdown);ok=true;
+  }catch(err){message=err.message}
+  activeFrame.contentWindow.postMessage({w3icon:true,kind:'insert-result',id:d.id,ok,message},'*');
+  return;
+ }
  if(!d||d.w3qwen!==true||d.kind!=='request')return;
  if(!/^[A-Za-z0-9_-]{1,48}$/.test(d.id)||!['health','chat','token','clearToken','export','checkUpdate'].includes(d.action)||typeof d.payload!=='string')return;
  if(d.action==='checkUpdate'){
