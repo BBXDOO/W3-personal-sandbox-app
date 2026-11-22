@@ -1,4 +1,4 @@
-# W3 Personal Sandbox — v57 (0.57)
+# W3 Personal Sandbox — v58 (0.58)
 
 ฐานพัฒนา Personal Sandbox รวมซอร์ส React/TypeScript และ Android ไว้ในรีโป้นี้
 
@@ -45,4 +45,6 @@ gradle --no-daemon :app:assembleDebug
 - [Release checklist](RELEASE_CHECKLIST_TH.md)
 - [APK v57](https://github.com/BBXDOO/W3-personal-sandbox-app/releases/tag/v57)
 
-v57 เพิ่มบอร์ดเต็มจอบนมือถือ ส่วน Terminal อยู่ในแผนพัฒนาถัดไป
+v58 เพิ่มเมนู 🖥 Terminal ใต้ “รูปแบบ” พร้อมปุ่มเปิด Termux และเตรียม session บริการ PTY ใช้ Python ใน Termux และเชื่อมผ่าน AndroidBridge ที่ `127.0.0.1:8766`
+
+การตั้งค่าครั้งแรกและข้อจำกัดอยู่ในคู่มือหัวข้อ Terminal ต้องให้สิทธิ์ RUN_COMMAND และเปิด allow-external-apps บน Termux ทดสอบ backend บน Linux ด้วย `python3 -m unittest discover -s tools/terminal -p 'test_*.py' -v` ส่วนการเริ่มบริการจาก Android ต้องทดสอบบนเครื่องจริง

@@ -38,6 +38,7 @@ public class MainActivity extends Activity {
     private static final int PICK_FILE = 1201;
     private static final int SAVE_FILE = 1202;
     private WebView webView;
+    private TerminalTransport terminalTransport;
     private ValueCallback<Uri[]> fileCallback;
     private byte[] pendingExport;
     private boolean storyWriterOpen;
@@ -56,6 +57,7 @@ public class MainActivity extends Activity {
         // Android's system picker supplies content:// URIs for JSON and images.
         webView.getSettings().setAllowContentAccess(true);
         webView.getSettings().setJavaScriptCanOpenWindowsAutomatically(false);
+        terminalTransport = new TerminalTransport(this, webView);
         webView.addJavascriptInterface(new ExportBridge(), "AndroidBridge");
         webView.setWebViewClient(new WebViewClient() {
             @Override public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
@@ -104,6 +106,12 @@ public class MainActivity extends Activity {
     }
 
     private class ExportBridge {
+        @JavascriptInterface public String terminalStatus() { return terminalTransport.status(); }
+        @JavascriptInterface public void prepareTerminal() { terminalTransport.prepare(); }
+        @JavascriptInterface public void openTermux() { terminalTransport.openTermux(); }
+        @JavascriptInterface public void terminalRequest(String id, String method, String path, String body) {
+            terminalTransport.request(id, method, path, body);
+        }
         @JavascriptInterface public void checkUpdate() { new Thread(MainActivity.this::checkForUpdate).start(); }
         @JavascriptInterface public void saveJson(String name, String contents) {
             saveDocument(name, contents, "application/json");
@@ -125,6 +133,12 @@ public class MainActivity extends Activity {
                 } catch (Exception e) { Toast.makeText(MainActivity.this, "เปิดลิงก์ไม่สำเร็จ", Toast.LENGTH_SHORT).show(); }
             });
         }
+    }
+
+    @Override public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == TerminalTransport.PERMISSION_REQUEST && grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED)
+            terminalTransport.prepare();
     }
 
     private void saveDocument(String name, String contents, String mime) {
@@ -303,6 +317,7 @@ public class MainActivity extends Activity {
         else super.onBackPressed();
     }
     @Override protected void onDestroy() {
+        if (terminalTransport != null) terminalTransport.dispose();
         if (fileCallback != null) fileCallback.onReceiveValue(null);
         webView.destroy();
         super.onDestroy();

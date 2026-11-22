@@ -80,6 +80,16 @@ export const LeftNav: React.FC<LeftNavProps> = ({
               รูปแบบ
             </span>
           </button>
+          <button
+            onClick={() => onTabChange('terminal')}
+            title="Terminal"
+            aria-label="Terminal"
+            aria-current={activeTab === 'terminal' ? 'page' : undefined}
+            className={`w-full flex flex-col md:flex-row items-center gap-1 md:gap-4 px-2 md:px-5 py-4 transition-all rounded-2xl ${activeTab === 'terminal' ? 'ps-nav-active border text-[var(--accent)]' : 'text-zinc-300 hover:text-white hover:bg-white/5'}`}
+          >
+            <span className="text-2xl" aria-hidden="true">🖥</span>
+            <span className="ps-nav-label">Terminal</span>
+          </button>
         </div>
       </div>
       

@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { StoryPack, TabId, UITheme, CharacterPack, LocationPack, ItemPack, CardPack, EventPack, StoryNode, RulesetPack, BoardPack } from '../../types';
 import { TopBar } from './TopBar';
 import { LeftNav } from './LeftNav';
@@ -21,6 +21,8 @@ import { SplitLayout60_40 } from '../../ui/layout/SplitLayout60_40';
 import { MonitorCore } from '../../ui/components/MonitorCore';
 import { generateId, deepClone } from '../../core/utils';
 import { exportStory } from '../../core/storage';
+
+const TerminalWorkspace = lazy(() => import('../terminal/TerminalWorkspace'));
 
 interface EditorShellProps {
   story: StoryPack;
@@ -246,6 +248,7 @@ export const EditorShell: React.FC<EditorShellProps> = ({ story: initialStory, o
     const commonProps = { story, onChange: updateStory, toolActions };
 
     switch (activeTab) {
+      case 'terminal': return <Suspense fallback={<p role="status">กำลังเปิด Terminal…</p>}><TerminalWorkspace /></Suspense>;
       case 'home': return <DashboardTab {...commonProps} />;
       case 'story': return <StoryTab {...commonProps} navigationTarget={navigationTarget} onCommit={handleSave} onCommitChange={commitStoryChange} saveState={saveError ? 'error' : isDirty ? 'pending' : 'saved'} />;
       case 'character': return <CharactersTab {...commonProps} />;
