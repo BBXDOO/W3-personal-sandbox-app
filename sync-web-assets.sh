@@ -19,4 +19,5 @@ PYTHON
 cp "$WEB_SOURCE/docs/คู่มือใช้งานภาษาไทย.md" "$APP_ROOT/USER_GUIDE_TH.md"
 mkdir -p "$APP_ROOT/app/src/main/assets/terminal"
 cp "$APP_ROOT/tools/terminal/server.py" "$APP_ROOT/app/src/main/assets/terminal/server.py"
+cp "$APP_ROOT/tools/terminal/bootstrap.py" "$APP_ROOT/app/src/main/assets/terminal/bootstrap.py"
 python3 "$APP_ROOT/check-release.py"

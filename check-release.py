@@ -22,4 +22,5 @@ bundles = '\n'.join(p.read_text() for p in (assets / 'assets').glob('*.js'))
 assert f"manual-version: {info['versionCode']}" in bundles, 'guide is not in the application bundle'
 assert info['manualSha256'] and info['sourceSha256'], 'review fingerprint missing'
 assert (root / 'tools/terminal/server.py').read_bytes() == (root / 'app/src/main/assets/terminal/server.py').read_bytes(), 'bundled terminal backend differs from source'
+assert (root / 'tools/terminal/bootstrap.py').read_bytes() == (root / 'app/src/main/assets/terminal/bootstrap.py').read_bytes(), 'bundled terminal bootstrap differs from source'
 print(f"APK manual v{info['versionCode']}: manifest, checksum, sections and bundled guide passed")

@@ -109,6 +109,7 @@ public class MainActivity extends Activity {
         @JavascriptInterface public String terminalStatus() { return terminalTransport.status(); }
         @JavascriptInterface public void prepareTerminal() { terminalTransport.prepare(); }
         @JavascriptInterface public void openTermux() { terminalTransport.openTermux(); }
+        @JavascriptInterface public void copyTerminalSetup() { terminalTransport.copySetupAndOpenTermux(); }
         @JavascriptInterface public void terminalRequest(String id, String method, String path, String body) {
             terminalTransport.request(id, method, path, body);
         }

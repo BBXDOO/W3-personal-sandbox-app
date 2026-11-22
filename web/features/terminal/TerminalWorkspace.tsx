@@ -19,6 +19,7 @@ export default function TerminalWorkspace() {
   const [message, setMessage] = useState('');
   const [cwd, setCwd] = useState('');
   const [command, setCommand] = useState('');
+  const [automatic, setAutomatic] = useState(true);
   const bridge = terminalBridge();
   const report = (error: unknown) => setMessage(error instanceof Error ? error.message : String(error));
 
@@ -72,6 +73,7 @@ export default function TerminalWorkspace() {
     if (bridge?.terminalRequest) {
       try {
         const status = JSON.parse(bridge.terminalStatus());
+        setAutomatic(status.supportsRunCommand !== false);
         if (status.installed) void connect();
         else setMessage('ไม่พบ Termux โปรดติดตั้งและเปิด Termux ก่อน');
       } catch (error) { report(error); }
@@ -137,18 +139,27 @@ export default function TerminalWorkspace() {
     <header className="terminal-toolbar">
       <strong>🖥 Terminal</strong>
       <button onClick={() => bridge?.openTermux ? bridge.openTermux() : setMessage('ปุ่มเปิด Termux ใช้งานในแอป Android')}>เปิด Termux</button>
-      <button disabled={!bridge?.prepareTerminal || busy} onClick={() => { setMessage('กำลังเตรียม session ใน Termux…'); bridge?.prepareTerminal(); }}>เตรียม session</button>
+      <button disabled={!bridge?.prepareTerminal || busy} onClick={() => {
+        if (automatic) { setMessage('กำลังเตรียม session ใน Termux…'); bridge?.prepareTerminal(); }
+        else bridge?.copyTerminalSetup();
+      }}>{automatic ? 'เตรียม session' : 'คัดลอกและเปิด Termux'}</button>
       <button disabled={!bridge?.terminalRequest || busy} onClick={connect}>เชื่อมต่อ</button>
     </header>
     <div className="terminal-status" role="status">{connected ? '● เชื่อมต่อ Termux' : '○ ยังไม่เชื่อมต่อ'}{message && ` · ${message}`}</div>
     {!connected && <details className="terminal-setup" open>
       <summary>ตั้งค่าครั้งแรก</summary>
-      <ol>
+      {automatic ? <ol>
         <li>เปิด Termux แล้วติดตั้ง Python ด้วย <code>pkg install python</code></li>
         <li>เปิดไฟล์ <code>~/.termux/termux.properties</code> แล้วตั้ง <code>allow-external-apps = true</code> จากนั้นรัน <code>termux-reload-settings</code></li>
         <li>กด “เตรียม session” และอนุญาต Run commands in Termux หากไม่ได้รับสิทธิ์ ให้เปิดการตั้งค่าแอป Sandbox → สิทธิ์เพิ่มเติม</li>
         <li>รอ Termux เริ่มบริการเบื้องหลัง แล้วกลับมาที่ Sandbox กด “เชื่อมต่อ”</li>
-      </ol>
+      </ol> : <ol>
+        <li>กด “คัดลอกและเปิด Termux”</li>
+        <li>ใน Termux แตะค้างแล้วเลือก “วาง” จากนั้นกด Enter เพื่อเริ่มบริการ</li>
+        <li>เปิด session นี้ค้างไว้ กลับมาที่ Sandbox แล้วกด “เชื่อมต่อ”</li>
+      </ol>}
+      {!automatic && <p>คำสั่งเริ่มบริการใช้ Python ที่ติดตั้งใน Termux และมีรหัสเชื่อมต่อส่วนตัวของเครื่องนี้ ให้ใช้วางใน Termux บนเครื่องนี้</p>}
+      {automatic && bridge?.copyTerminalSetup && <button onClick={() => bridge.copyTerminalSetup()}>เริ่มบริการด้วยคำสั่งใน Termux</button>}
       <p>session แรกเปิดในโฟลเดอร์ W3 หากมีอยู่ใน home ของ Termux การรันคำสั่งใช้ไฟล์และสิทธิ์ของ Termux บนเครื่องคุณ</p>
     </details>}
     <div className="terminal-toolbar">

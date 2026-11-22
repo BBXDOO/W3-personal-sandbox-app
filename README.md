@@ -1,4 +1,4 @@
-# W3 Personal Sandbox — v58 (0.58)
+# W3 Personal Sandbox — v59 (0.59)
 
 ฐานพัฒนา Personal Sandbox รวมซอร์ส React/TypeScript และ Android ไว้ในรีโป้นี้
 
@@ -47,4 +47,6 @@ gradle --no-daemon :app:assembleDebug
 
 v58 เพิ่มเมนู 🖥 Terminal ใต้ “รูปแบบ” พร้อมปุ่มเปิด Termux และเตรียม session บริการ PTY ใช้ Python ใน Termux และเชื่อมผ่าน AndroidBridge ที่ `127.0.0.1:8766`
 
-การตั้งค่าครั้งแรกและข้อจำกัดอยู่ในคู่มือหัวข้อ Terminal ต้องให้สิทธิ์ RUN_COMMAND และเปิด allow-external-apps บน Termux ทดสอบ backend บน Linux ด้วย `python3 -m unittest discover -s tools/terminal -p 'test_*.py' -v` ส่วนการเริ่มบริการจาก Android ต้องทดสอบบนเครื่องจริง
+การตั้งค่าครั้งแรกและข้อจำกัดอยู่ในคู่มือหัวข้อ Terminal วิธีเริ่มอัตโนมัติใช้สิทธิ์ RUN_COMMAND และ allow-external-apps ส่วนรุ่นที่ไม่มีบริการนี้ใช้ปุ่มคัดลอกคำสั่งแล้ววางใน Termux ทดสอบ backend บน Linux ด้วย `python3 -m unittest discover -s tools/terminal -p 'test_*.py' -v` ส่วนการเริ่มบริการจาก Android ต้องทดสอบบนเครื่องจริง
+
+รุ่น v59 ตรวจความสามารถ RUN_COMMAND ของ Termux ก่อนขอสิทธิ์ หากไม่มีบริการนั้น จะแสดงปุ่มคัดลอกคำสั่งและเปิด Termux ให้ผู้ใช้วางและเริ่มบริการด้วย Python ได้ รหัสเชื่อมต่อถูกใส่ในคำสั่งโดย native และไม่ส่งเข้า JavaScript ตรวจ template ที่ใช้เริ่มบริการทั้งสองวิธีก่อน build ทุกครั้ง
