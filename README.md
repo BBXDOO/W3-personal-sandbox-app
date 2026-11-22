@@ -1,9 +1,48 @@
-# W3 Personal Sandbox — v54 (0.54)
+# W3 Personal Sandbox — v57 (0.57)
 
-แอปพื้นที่ส่วนตัว เก็บข้อมูลบนเครื่องและสำรอง JSON
+ฐานพัฒนา Personal Sandbox รวมซอร์ส React/TypeScript และ Android ไว้ในรีโป้นี้
 
-- [คู่มือภาษาไทยทุกเมนู](USER_GUIDE_TH.md) — เนื้อหาเดียวกับคู่มือในแอป
-- [ตรวจคู่มือก่อนออกแต่ละรุ่น](RELEASE_CHECKLIST_TH.md)
-- [รุ่นดาวน์โหลดและอัปเดต](https://github.com/BBXDOO/W3-personal-sandbox-app/releases/latest)
+| ตำแหน่ง | หน้าที่ |
+|---|---|
+| `web/` | ซอร์ส React/TypeScript, tests, คู่มือ และ lockfile |
+| `app/` | Android host, AndroidBridge และไฟล์เว็บสำหรับ APK |
+| `sync-web-assets.sh` | Build `web/` และนำผลเข้า Android พร้อมตรวจคู่มือ |
+| `check-release.py` | ตรวจเวอร์ชันและคู่มือที่บรรจุใน APK |
 
-รุ่น v54 ปรับแถบคำสั่ง Story Editor สำหรับมือถือ และเพิ่มคำสั่งลบตอนพร้อมยืนยัน การสร้าง APK ต้องผ่าน check-release.py ก่อนเผยแพร่
+## เริ่มพัฒนา
+
+ใช้ Node.js 24, npm และ Python 3 จาก root รีโป้
+
+```sh
+npm ci --prefix web
+npm run dev
+```
+
+## ตรวจและ build
+
+```sh
+npm run lint
+npm run check:manual
+npm run build
+npm run verify:release
+```
+
+หลังแก้หน้าจอหรือ runtime ให้ตรวจคู่มือที่ได้รับผลกระทบ แล้วรัน `npm run review:manual` ก่อน build และ commit ซอร์สพร้อมไฟล์ที่สร้างใน `app/src/main/assets/www/` กับ `USER_GUIDE_TH.md` ขั้นตอน CI จะ build ซ้ำและตรวจว่าผลตรงกับไฟล์ที่ commit
+
+สร้าง APK ด้วย Android SDK 35, JDK 17 และ Gradle 8.9
+
+```sh
+gradle --no-daemon :app:assembleDebug
+```
+
+## ที่มาของซอร์ส v57
+
+ย้ายจาก `BBXDOO/W3_HB_team_BXCGICOG` commit `4951ac7a9c64a2dc8ac1b81e255b2bcbc751a21a` พาธ `w3_tool_store/personal_sandbox_template/source/` เมื่อ 22 พฤศจิกายน 2026 ซอร์สเว็บอยู่ใน `web/` และอ้าง Android project ที่ root ผ่าน release checker
+
+ให้พัฒนา Personal Sandbox รุ่นถัดไปในรีโป้นี้ สำเนาใน W3 ใช้อ้างอิงประวัติเดิม ขั้นตอน build ปัจจุบันใช้ซอร์ส `web/` ภายในรีโป้
+
+- [คู่มือภาษาไทย](USER_GUIDE_TH.md)
+- [Release checklist](RELEASE_CHECKLIST_TH.md)
+- [APK v57](https://github.com/BBXDOO/W3-personal-sandbox-app/releases/tag/v57)
+
+v57 เพิ่มบอร์ดเต็มจอบนมือถือ ส่วน Terminal อยู่ในแผนพัฒนาถัดไป

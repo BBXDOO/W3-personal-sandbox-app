@@ -1,7 +1,7 @@
 #!/usr/bin/env sh
 set -eu
 APP_ROOT=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
-WEB_SOURCE=${1:?Pass the Personal Sandbox web source directory}
+WEB_SOURCE=${1:-"$APP_ROOT/web"}
 WEB_SOURCE=$(CDPATH= cd -- "$WEB_SOURCE" && pwd)
 (cd "$WEB_SOURCE" && npm run build)
 python3 - "$WEB_SOURCE" "$APP_ROOT" <<'PYTHON'

@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - refactor/v0.2
+  pull_request:
+    branches: [refactor/v0.2]
   workflow_dispatch:
     inputs:
       package_type:
@@ -26,6 +28,19 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - name: Validate and build local web source
+        run: |
+          npm ci --prefix web
+          npm run lint
+          npm run check:manual
+          npm run build
+          npm run verify:release
+          git diff --exit-code -- app/src/main/assets/www USER_GUIDE_TH.md
       - name: Verify bundled manual matches APK
         run: python3 check-release.py
       - uses: actions/setup-java@v4
@@ -41,13 +56,13 @@ jobs:
         with:
           gradle-version: '8.9'
       - name: Build test APK
-        if: (github.event_name == 'workflow_dispatch' && inputs.package_type == 'debug') || (github.event_name == 'push' && !startsWith(github.event.head_commit.message, 'Publish owner-signed v'))
+        if: github.event_name == 'pull_request' || (github.event_name == 'workflow_dispatch' && inputs.package_type == 'debug') || (github.event_name == 'push' && !startsWith(github.event.head_commit.message, 'Publish owner-signed v'))
         run: gradle --no-daemon :app:assembleDebug
       - name: Check APK archive
-        if: (github.event_name == 'workflow_dispatch' && inputs.package_type == 'debug') || (github.event_name == 'push' && !startsWith(github.event.head_commit.message, 'Publish owner-signed v'))
+        if: github.event_name == 'pull_request' || (github.event_name == 'workflow_dispatch' && inputs.package_type == 'debug') || (github.event_name == 'push' && !startsWith(github.event.head_commit.message, 'Publish owner-signed v'))
         run: unzip -t app/build/outputs/apk/debug/app-debug.apk
       - uses: actions/upload-artifact@v4
-        if: (github.event_name == 'workflow_dispatch' && inputs.package_type == 'debug') || (github.event_name == 'push' && !startsWith(github.event.head_commit.message, 'Publish owner-signed v'))
+        if: github.event_name == 'pull_request' || (github.event_name == 'workflow_dispatch' && inputs.package_type == 'debug') || (github.event_name == 'push' && !startsWith(github.event.head_commit.message, 'Publish owner-signed v'))
         with:
           name: W3-Sandbox-debug-APK
           path: app/build/outputs/apk/debug/app-debug.apk
