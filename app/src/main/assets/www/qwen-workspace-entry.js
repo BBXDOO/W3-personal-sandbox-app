@@ -47,7 +47,7 @@ function openWorkspace(){
  const bar=document.createElement('div');Object.assign(bar.style,{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'8px 12px',color:'#fff',background:'#17241b',borderRadius:'12px 12px 0 0'});
  const title=document.createElement('strong');title.textContent='🧩 Icon Library · IL1';
  const close=document.createElement('button');close.type='button';close.textContent='✕ ปิด';close.setAttribute('aria-label','ปิด Qwen3 Workspace');Object.assign(close.style,{padding:'9px 12px',background:'#314c3a',color:'#fff',border:'0',borderRadius:'8px'});
- const frame=document.createElement('iframe');frame.title='คลังไอคอน';frame.src='./icon-library.html';frame.setAttribute('sandbox','allow-scripts allow-forms allow-downloads');activeFrame=frame;Object.assign(frame.style,{border:'0',background:'#111714',width:'100%',flex:'1',minHeight:'0',borderRadius:'0 0 12px 12px'});
+ const frame=document.createElement('iframe');frame.title='คลังไอคอน';frame.src='./icon-library.html';frame.setAttribute('sandbox','allow-scripts allow-forms allow-downloads allow-same-origin');activeFrame=frame;Object.assign(frame.style,{border:'0',background:'#111714',width:'100%',flex:'1',minHeight:'0',borderRadius:'0 0 12px 12px'});
  const dismiss=()=>{activeFrame=null;backdrop.remove();document.removeEventListener('keydown',escapeHandler)};
  const escapeHandler=e=>{if(e.key==='Escape')dismiss()};
  close.addEventListener('click',dismiss);backdrop.addEventListener('click',e=>{if(e.target===backdrop)dismiss()});document.addEventListener('keydown',escapeHandler);
