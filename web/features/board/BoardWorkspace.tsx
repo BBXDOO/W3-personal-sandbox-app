@@ -1,0 +1,194 @@
+import React, { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
+import type { BoardPack, CellPack } from '../../types';
+import { BOARD_TABLE_THEMES, boardTableTheme } from '../../core/boardTheme';
+import { gridGeometry } from '../../core/boardTiles';
+
+type ViewMode = NonNullable<BoardPack['viewMode']>;
+type RecordCell = { key: string; cell: CellPack };
+
+interface Props {
+  board: BoardPack;
+  selectedKey: string | null;
+  zoom: number;
+  onZoom: (value: number) => void;
+  onAppearance: (patch: Partial<BoardPack>) => void;
+  onSelect: (key: string) => void;
+  onMode: (mode: ViewMode) => void;
+  onAdd: (parentKey?: string) => void;
+  onUpdate: (key: string, patch: Partial<CellPack>) => void;
+  onDelete: (key: string) => void;
+  tileLibrary?: React.ReactNode;
+  tileImages?: Record<string, string>;
+}
+
+const modes: { id: ViewMode; label: string }[] = [
+  { id: 'overview', label: '▦ ภาพรวม' },
+  { id: 'grid', label: '▦ ตารางพิกัด' },
+  { id: 'database', label: '▤ ฐานข้อมูล' },
+  { id: 'mindmap', label: '◇ มายด์แมพ' }
+];
+
+const palette = ['#16a34a', '#0f9f74', '#306bd1', '#a64a9f', '#be7440', '#397d8f'];
+const panel = 'rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3';
+const field = 'w-full rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-2 py-2 text-sm text-[var(--text)]';
+const action = 'rounded-lg border border-[var(--accent)]/40 px-3 py-2 text-xs text-[var(--text)]';
+const cellName = (entry: RecordCell) => entry.cell.name?.trim() || `พิกัด ${entry.cell.x}, ${entry.cell.y}`;
+
+export const BoardWorkspace: React.FC<Props> = ({ board, selectedKey, zoom, onZoom, onAppearance, onSelect, onMode, onAdd, onUpdate, onDelete, tileLibrary, tileImages = {} }) => {
+  const mode = board.viewMode || 'grid';
+  const [query, setQuery] = useState('');
+  const [mobilePanel, setMobilePanel] = useState<'board' | 'tools' | 'theme' | 'tiles' | 'details'>('board');
+  const [boardExpanded, setBoardExpanded] = useState(false);
+  useEffect(() => {
+    if (!boardExpanded) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setBoardExpanded(false);
+    };
+    window.addEventListener('keydown', closeOnEscape);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener('keydown', closeOnEscape);
+    };
+  }, [boardExpanded]);
+  const mobilePanels: ReadonlyArray<readonly ['board' | 'tools' | 'theme' | 'tiles' | 'details', string]> = mode === 'grid' ? ([['board', 'ตาราง'], ['tools', 'เครื่องมือ'], ['theme', 'ธีม'], ['tiles', 'คลังภาพ'], ['details', 'รายละเอียด']] as const) : ([['board', 'พื้นที่'], ['details', 'รายละเอียด']] as const);
+  const activeMobilePanel = mobilePanels.some(([id]) => id === mobilePanel) ? mobilePanel : 'board';
+  const [sortBy, setSortBy] = useState<'coordinate' | 'name'>('coordinate');
+  const tableTheme = boardTableTheme(board);
+  const gridViewport = useRef<HTMLDivElement>(null);
+  const { gap, radius } = gridGeometry(board.gridStyle);
+  const fitGrid = () => {
+    const width = gridViewport.current?.clientWidth || 320;
+    const height = gridViewport.current?.clientHeight || 240;
+    const fitWidth = (width - 16 - gap * (board.width - 1)) / board.width;
+    const fitHeight = (height - 16 - gap * (board.height - 1)) / board.height;
+    onZoom(Math.max(8, Math.min(64, Math.floor(Math.min(fitWidth, fitHeight)))));
+  };
+  const records: RecordCell[] = (Object.entries(board.cellMap) as [string, CellPack][])
+    .filter(([, cell]) => cell.name || cell.desc || cell.markerColor || cell.markerIcon || cell.tileRefId || (cell.type && cell.type !== 'Empty'))
+    .map(([key, cell]) => ({ key, cell }))
+    .filter(({ cell }) => cell.x < board.width && cell.y < board.height)
+    .sort((a, b) => a.cell.y - b.cell.y || a.cell.x - b.cell.x);
+  const selected = selectedKey ? records.find(entry => entry.key === selectedKey) : undefined;
+  const filtered = records.filter(entry => `${cellName(entry)} ${entry.cell.desc || ''}`.toLowerCase().includes(query.toLowerCase()))
+    .sort((a, b) => sortBy === 'name' ? cellName(a).localeCompare(cellName(b), 'th') : a.cell.y - b.cell.y || a.cell.x - b.cell.x);
+  const types = ['Location', 'Encounter', 'SafeZone', 'Empty'] as const;
+  const typeCounts = types.map(type => ({ type, count: records.filter(entry => (entry.cell.type || 'Empty') === type).length }));
+  const roots = records.filter(entry => !entry.cell.parentKey || !records.some(other => other.key === entry.cell.parentKey));
+  const descendantOf = (key: string, possibleParent: string): boolean => {
+    const visited = new Set<string>();
+    let cursor: string | undefined = possibleParent;
+    while (cursor && !visited.has(cursor)) {
+      if (cursor === key) return true;
+      visited.add(cursor);
+      cursor = records.find(entry => entry.key === cursor)?.cell.parentKey;
+    }
+    return false;
+  };
+  const renderNode = (entry: RecordCell, ancestors: Set<string>): React.ReactNode => {
+    if (ancestors.has(entry.key)) return null;
+    const next = new Set(ancestors).add(entry.key);
+    return <div key={entry.key} className="border-l border-emerald-500/30 pl-3 mt-2">
+      <button type="button" onClick={() => onSelect(entry.key)} className={`w-full text-left rounded-lg border p-2 text-xs ${selectedKey === entry.key ? 'border-[var(--accent)] bg-[var(--accent)]/15' : 'border-white/10 bg-white/5'}`}>
+        <span className="mr-2">{entry.cell.markerIcon || '◇'}</span>{cellName(entry)}
+      </button>
+      {records.filter(child => child.cell.parentKey === entry.key).map(child => renderNode(child, next))}
+    </div>;
+  };
+
+  const workspace = <div className={`board-workspace ${boardExpanded ? 'board-workspace-expanded' : ''}`} data-mobile-panel={activeMobilePanel} aria-label="พื้นที่ข้อมูลบอร์ด">
+    <div className="flex items-center gap-1 overflow-x-auto shrink-0 pb-1" aria-label="รูปแบบการแสดงข้อมูล">
+      {modes.map(option => <button key={option.id} type="button" onClick={() => onMode(option.id)} aria-pressed={mode === option.id}
+        className={`shrink-0 rounded-lg px-3 py-2 text-xs ${mode === option.id ? 'bg-[var(--accent)] text-[#0b0912] font-bold' : 'bg-white/5 text-slate-300'}`}>{option.label}</button>)}
+    </div>
+    <div className="board-mobile-toolbar" aria-label="เครื่องมือบอร์ดบนมือถือ">
+      <div className="board-mobile-tabs" role="group" aria-label="แผงบอร์ด">
+        {mobilePanels.map(([id, label]) => <button key={id} type="button" aria-pressed={activeMobilePanel === id} onClick={() => setMobilePanel(id)}>{label}</button>)}
+      </div>
+      <button className="board-mobile-expand" type="button" aria-pressed={boardExpanded} onClick={() => setBoardExpanded(value => !value)}>{boardExpanded ? 'ย่อ' : '⛶ ขยาย'}</button>
+    </div>
+    <div className="board-workspace-columns">
+      <section className={`${panel} min-w-0 min-h-0 flex flex-col overflow-hidden`} aria-label="ภาพรวมข้อมูล">
+        <div className="flex items-center justify-between gap-2 pb-2 text-xs"><strong>{mode === 'overview' ? 'ภาพรวมพื้นที่' : mode === 'grid' ? 'ตารางพิกัด' : mode === 'database' ? 'รายการข้อมูล' : 'ความสัมพันธ์'}</strong><span className="text-emerald-300">{records.length} รายการ</span></div>
+        {mode === 'database' && <div className="flex gap-1 mb-2"><input className={`${field} min-w-0`} type="search" placeholder="ค้นหาข้อมูล" value={query} onChange={event => setQuery(event.target.value)} /><select aria-label="เรียงรายการ" className={`${field} w-24 shrink-0`} value={sortBy} onChange={event => setSortBy(event.target.value as 'coordinate' | 'name')}><option value="coordinate">พิกัด</option><option value="name">ชื่อ</option></select></div>}
+        <div ref={gridViewport} className="board-grid-viewport scroll-container" style={mode === 'grid' ? {
+          background: tableTheme.background,
+          '--table-text': tableTheme.text,
+          '--table-grid': tableTheme.grid,
+          '--table-selection': tableTheme.selection,
+        } as React.CSSProperties : undefined}>
+          {mode === 'grid' && <div className="grid w-max" style={{ gridTemplateColumns: `repeat(${board.width}, ${zoom}px)`, gap }}>
+            {Array.from({ length: board.width * board.height }, (_, index) => {
+              const x = index % board.width, y = Math.floor(index / board.width), key = `${x}_${y}`;
+              const cell = board.cellMap[key];
+              return <button key={key} type="button" title={cell?.name || `พิกัด ${x}, ${y}`} onClick={() => onSelect(key)}
+                aria-label={`ช่อง ${x},${y}`} aria-pressed={selectedKey === key}
+                className={`board-cell ${board.gridStyle === 'seamless' ? 'board-cell-seamless' : ''} ${selectedKey === key ? 'board-cell-selected' : ''}`}
+                style={{ width: zoom, height: zoom, borderRadius: radius, backgroundColor: cell?.markerColor || tableTheme.empty, backgroundImage: cell?.tileRefId && tileImages[cell.tileRefId] ? `url("${tileImages[cell.tileRefId]}")` : undefined, backgroundSize: '100% 100%', borderWidth: board.gridStyle === 'seamless' ? 0 : undefined,
+                  boxShadow: board.gridStyle === 'seamless' ? board.showGridLines !== false ? `inset -1px -1px ${tableTheme.grid}` : 'none' : undefined,
+                  fontSize: Math.max(7, zoom * .36) }}>{cell?.markerIcon || (board.showCoordinates ? `${x},${y}` : cell?.tileRefId || board.gridStyle === 'dots' ? '' : cell?.name?.slice(0, 3) || '')}</button>;
+            })}
+          </div>}
+          {mode === 'overview' && (records.length ? <div className="grid grid-cols-3 auto-rows-[68px] gap-1">
+            {records.map((entry, index) => <button key={entry.key} type="button" onClick={() => onSelect(entry.key)}
+              className={`min-w-0 rounded-md p-2 text-left text-xs flex flex-col justify-between ${selectedKey === entry.key ? 'ring-2 ring-white' : ''}`}
+              style={{ gridColumn: index % 5 === 0 ? 'span 2' : undefined, background: entry.cell.markerColor || palette[index % palette.length] }}>
+              <span className="truncate font-bold">{entry.cell.markerIcon} {cellName(entry)}</span><small className="opacity-80">{entry.cell.x}, {entry.cell.y}</small>
+            </button>)}</div> : <div className="h-full flex flex-col items-center justify-center gap-3 text-center text-xs text-slate-300">ยังไม่มีข้อมูลในพื้นที่นี้<button className={action} onClick={() => onAdd()}>+ เพิ่มรายการแรก</button></div>)}
+          {mode === 'database' && (filtered.length ? filtered.map(entry => <button key={entry.key} type="button" onClick={() => onSelect(entry.key)}
+            className={`w-full flex justify-between gap-2 border-b border-white/10 px-2 py-3 text-left text-xs ${selectedKey === entry.key ? 'bg-emerald-900/40' : ''}`}><span className="truncate">{entry.cell.markerIcon} {cellName(entry)}</span><span className="text-slate-400 shrink-0">{entry.cell.x},{entry.cell.y}</span></button>) : <p className="p-3 text-xs text-slate-400">ไม่พบรายการ</p>)}
+          {mode === 'mindmap' && (records.length ? roots.map(entry => renderNode(entry, new Set())) : <p className="p-3 text-xs text-slate-400">เพิ่มหัวข้อเพื่อเริ่มมายด์แมพ</p>)}
+        </div>
+        {mode === 'grid' && <div className="board-grid-controls">
+          <button type="button" aria-pressed={!board.gridStyle || board.gridStyle === 'tiles'} onClick={() => onAppearance({ gridStyle: 'tiles' })}>ช่องมน</button>
+          <button type="button" aria-pressed={board.gridStyle === 'dots'} onClick={() => onAppearance({ gridStyle: 'dots' })}>จุด</button>
+          <button type="button" aria-pressed={board.gridStyle === 'seamless'} onClick={() => onAppearance({ gridStyle: 'seamless' })}>กริดชิด</button>
+          {board.gridStyle === 'seamless' && <label><input type="checkbox" checked={board.showGridLines !== false} onChange={event => onAppearance({ showGridLines: event.target.checked })} /> เส้นกริด</label>}
+          <button type="button" onClick={fitGrid}>พอดีจอ</button>
+          <label><input type="checkbox" checked={!!board.showCoordinates} onChange={e => onAppearance({ showCoordinates: e.target.checked })} /> พิกัด</label>
+          <label className="board-size">ขนาด <input aria-label="ขนาดช่องบอร์ด" type="range" min="8" max="64" value={zoom} onChange={e => onZoom(Number(e.target.value))} /> <span>{zoom}px</span></label>
+        </div>}
+        {mode === 'grid' && <details className="board-table-theme" open={activeMobilePanel === 'theme' ? true : undefined}>
+          <summary>🎨 ธีมเฉพาะตาราง</summary>
+          <div className="board-table-theme-options">
+            <div className="flex flex-wrap gap-2">{Object.entries(BOARD_TABLE_THEMES).map(([id, preset]) => <button key={id} type="button"
+              aria-pressed={Object.keys(tableTheme).every(key => tableTheme[key] === preset.colors[key])}
+              onClick={() => onAppearance({ tableTheme: { ...preset.colors } })}>{preset.label}</button>)}
+              <button type="button" onClick={() => onAppearance({ tableTheme: undefined })}>คืนค่าเริ่มต้น</button>
+            </div>
+            <div className="board-table-color-fields">{([
+              ['background', 'พื้นตาราง'], ['empty', 'ช่องว่าง'], ['grid', 'เส้นตาราง'], ['text', 'ตัวอักษร'], ['selection', 'กรอบช่องที่เลือก'],
+            ] as const).map(([key, label]) => <label key={key}>{label}<input type="color" aria-label={label} value={tableTheme[key]}
+              onChange={event => onAppearance({ tableTheme: { ...tableTheme, [key]: event.target.value } })} /></label>)}</div>
+            <p>ปรับเฉพาะตารางพิกัดของบอร์ดนี้ กดบันทึกเพื่อเก็บค่า ส่งออก JSON เพื่อสำรองพร้อมโครงการ สีช่องที่กำหนดไว้เองยังใช้ตามเดิม</p>
+          </div>
+        </details>}
+
+        {mode === 'grid' && tileLibrary}
+      </section>
+      <details className="board-inspector" open={activeMobilePanel === 'details' ? true : undefined}><summary>รายละเอียด / เครื่องมือ {selectedKey ? `· ${selectedKey.replace('_', ', ')}` : ''}</summary><aside className="board-inspector-content scroll-container space-y-3 text-xs" aria-label="รายละเอียดและเครื่องมือ">
+        <div><strong className="text-emerald-200">{selected ? cellName(selected) : selectedKey ? `พิกัด ${selectedKey.replace('_', ', ')}` : 'เครื่องมือ'}</strong><p className="text-slate-400 mt-1">{mode === 'mindmap' ? 'จัดหัวข้อและความเชื่อมโยง' : mode === 'database' ? 'ค้นหาและแก้ข้อมูล' : 'เลือกช่องหรือรายการเพื่อดูรายละเอียด'}</p></div>
+        <button className={`${action} w-full`} onClick={() => onAdd(mode === 'mindmap' ? selectedKey || undefined : undefined)}>+ {mode === 'mindmap' && selectedKey ? 'เพิ่มหัวข้อย่อย' : 'เพิ่มรายการ'}</button>
+        {mode === 'overview' && <div className="grid grid-cols-2 gap-1" aria-label="สรุปข้อมูล"><div className="rounded-lg bg-emerald-950/60 p-2"><span className="text-slate-400">รายการ</span><strong className="block text-lg">{records.length}</strong></div><div className="rounded-lg bg-emerald-950/60 p-2"><span className="text-slate-400">ช่องทั้งหมด</span><strong className="block text-lg">{board.width * board.height}</strong></div></div>}
+        {mode === 'overview' && <div className="space-y-1" aria-label="ประเภทข้อมูล">{typeCounts.filter(item => item.count).map(item => <div key={item.type} className="flex items-center gap-2"><span className="w-16 truncate text-slate-300">{item.type}</span><div className="h-2 flex-1 rounded bg-white/10"><div className="h-full rounded bg-emerald-500" style={{ width: `${item.count / Math.max(records.length, 1) * 100}%` }} /></div><span>{item.count}</span></div>)}</div>}
+        {mode === 'database' && <p className="text-slate-400">แสดง {filtered.length} จาก {records.length} รายการ · ค้นหาและเรียงจากแผงซ้าย</p>}
+        {mode === 'mindmap' && <p className="text-slate-400">หัวข้อหลัก {roots.length} · แตะหัวข้อแล้วเพิ่มหัวข้อย่อยหรือเปลี่ยนหัวข้อแม่</p>}
+        {mode === 'grid' && <p className="text-slate-400">แตะช่องในตารางเพื่อกำหนดชนิด สี และไอคอนในส่วนแก้ไขด้านบน</p>}
+        {selectedKey && <>
+          <div className="board-marker-controls"><label>สีช่อง<input aria-label="สีช่องบอร์ด" type="color" value={selected?.cell.markerColor || '#8c6ed0'} onChange={e => onUpdate(selectedKey, { markerColor: e.target.value })} /></label><label>ไอคอน<input aria-label="ไอคอนช่องบอร์ด" className={field} value={selected?.cell.markerIcon || ''} onChange={e => onUpdate(selectedKey, { markerIcon: e.target.value })} /></label></div>
+          <label className="block">ชื่อ<input className={`${field} mt-1`} value={selected?.cell.name || ''} onChange={event => onUpdate(selectedKey, { name: event.target.value })} placeholder="ตั้งชื่อรายการ" /></label>
+          <label className="block">รายละเอียด<textarea className={`${field} mt-1 min-h-20 resize-y`} value={selected?.cell.desc || ''} onChange={event => onUpdate(selectedKey, { desc: event.target.value })} placeholder="บันทึกข้อมูล" /></label>
+          {mode === 'mindmap' && <label className="block">เชื่อมจากหัวข้อแม่<select className={`${field} mt-1`} value={selected?.cell.parentKey || ''} onChange={event => onUpdate(selectedKey, { parentKey: event.target.value || undefined })}>
+            <option value="">หัวข้อหลัก</option>{records.filter(entry => entry.key !== selectedKey && !descendantOf(selectedKey, entry.key)).map(entry => <option key={entry.key} value={entry.key}>{cellName(entry)}</option>)}
+          </select></label>}
+          <button className="text-rose-300 border border-rose-400/30 rounded-lg px-3 py-2" onClick={() => { if (window.confirm('ลบข้อมูลในช่องนี้?')) onDelete(selectedKey); }}>ลบรายการนี้</button>
+        </>}
+        <div className="border-t border-white/10 pt-2 text-slate-400">พื้นที่ {board.width} × {board.height} ช่อง<br />ข้อมูล {records.length} รายการ<br />เลือกโหมดด้านบนเพื่อเปลี่ยนวิธีดูข้อมูล</div>
+      </aside></details>
+    </div>
+  </div>;
+  return boardExpanded ? createPortal(workspace, document.body) : workspace;
+};
+
