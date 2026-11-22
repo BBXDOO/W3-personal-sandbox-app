@@ -87,7 +87,7 @@ jobs:
           export W3_RELEASE_KEYSTORE_FILE
           gradle --no-daemon :app:assembleRelease
           unzip -t app/build/outputs/apk/release/app-release.apk
-          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose app/build/outputs/apk/release/app-release.apk
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs app/build/outputs/apk/release/app-release.apk
       - uses: actions/upload-artifact@v4
         if: (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository) || (github.event_name == 'workflow_dispatch' && inputs.package_type == 'release') || (github.event_name == 'push' && startsWith(github.event.head_commit.message, 'Publish owner-signed v'))
         with:
@@ -106,6 +106,20 @@ jobs:
           TAG="v$VERSION_CODE"
           APK="app/build/outputs/apk/release/app-release.apk"
           test -s "$APK"
+          PREVIOUS_DIR="$(mktemp -d)"
+          trap 'rm -rf "$PREVIOUS_DIR"' EXIT
+          if PREVIOUS_TAG="$(gh release view --json tagName --jq .tagName 2>/dev/null)" && [[ "$PREVIOUS_TAG" != "$TAG" ]]; then
+            gh release download "$PREVIOUS_TAG" --pattern '*.apk' --dir "$PREVIOUS_DIR"
+            shopt -s nullglob
+            PREVIOUS_APKS=("$PREVIOUS_DIR"/*.apk)
+            test "${#PREVIOUS_APKS[@]}" -eq 1
+            APKSIGNER="$ANDROID_HOME/build-tools/35.0.0/apksigner"
+            PREVIOUS_CERT="$("$APKSIGNER" verify --print-certs "${PREVIOUS_APKS[0]}" | sed -n 's/^Signer #1 certificate SHA-256 digest: //p')"
+            CURRENT_CERT="$("$APKSIGNER" verify --print-certs "$APK" | sed -n 's/^Signer #1 certificate SHA-256 digest: //p')"
+            test -n "$CURRENT_CERT"
+            test "$PREVIOUS_CERT" = "$CURRENT_CERT"
+            echo "Update signing certificate matches $PREVIOUS_TAG"
+          fi
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release upload "$TAG" "$APK#W3-Personal-Sandbox-$TAG.apk" --clobber
           else

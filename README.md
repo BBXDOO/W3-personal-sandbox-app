@@ -43,7 +43,7 @@ gradle --no-daemon :app:assembleDebug
 
 - [คู่มือภาษาไทย](USER_GUIDE_TH.md)
 - [Release checklist](RELEASE_CHECKLIST_TH.md)
-- [APK v57](https://github.com/BBXDOO/W3-personal-sandbox-app/releases/tag/v57)
+- [ดาวน์โหลด APK รุ่นล่าสุด](https://github.com/BBXDOO/W3-personal-sandbox-app/releases/latest)
 
 v58 เพิ่มเมนู 🖥 Terminal ใต้ “รูปแบบ” พร้อมปุ่มเปิด Termux และเตรียม session บริการ PTY ใช้ Python ใน Termux และเชื่อมผ่าน AndroidBridge ที่ `127.0.0.1:8766`
 
