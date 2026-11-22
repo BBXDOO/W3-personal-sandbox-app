@@ -2,6 +2,7 @@ export interface TerminalBridge {
   terminalStatus(): string;
   prepareTerminal(): void;
   openTermux(): void;
+  copyTerminalSetup(): void;
   terminalRequest(id: string, method: string, path: string, body: string): void;
 }
 

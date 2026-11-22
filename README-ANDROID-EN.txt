@@ -1,4 +1,4 @@
-W3 Personal Sandbox v58 (0.58)
+W3 Personal Sandbox v59 (0.59)
 
 This repository contains the React/TypeScript source in web/ and the Android project at its root.
 Use Node.js 24, Python 3, JDK 17, Android SDK 35 and Gradle 8.9.
@@ -16,7 +16,9 @@ built-in https://appassets.androidplatform.net/assets/www/ origin.
 File selection uses Android's document picker. Export uses ACTION_CREATE_DOCUMENT.
 INTERNET permission is used for GitHub release checks and APK downloads.
 The packaged editor opens offline. The Terminal panel connects to a Python PTY service in Termux. Setup requires
-Termux >= 0.109, Python, RUN_COMMAND permission and allow-external-apps=true.
+Python in Termux. Automatic startup additionally requires RUN_COMMAND and
+allow-external-apps=true. Builds without RunCommandService use a native
+copy-and-open button so the user can paste the packaged bootstrap in Termux.
 AndroidBridge authenticates native HTTP requests to 127.0.0.1:8766.
 
 GitHub Actions rebuilds web/ and checks committed assets before compiling Android.

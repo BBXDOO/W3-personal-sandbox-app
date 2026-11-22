@@ -2,6 +2,10 @@ package com.w3personalsandbox.app;
 
 import android.app.Activity;
 import android.content.Intent;
+import android.content.ComponentName;
+import android.content.ClipData;
+import android.content.ClipboardManager;
+import android.content.Context;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.util.Base64;
@@ -45,8 +49,49 @@ final class TerminalTransport {
         try {
             result.put("installed", activity.getPackageManager().getLaunchIntentForPackage("com.termux") != null);
             result.put("permission", Build.VERSION.SDK_INT < 23 || activity.checkSelfPermission(PERMISSION) == PackageManager.PERMISSION_GRANTED);
+            result.put("supportsRunCommand", supportsRunCommand());
         } catch (Exception ignored) { }
         return result.toString();
+    }
+
+    private boolean supportsRunCommand() {
+        try {
+            activity.getPackageManager().getServiceInfo(new ComponentName("com.termux", "com.termux.app.RunCommandService"), 0);
+            activity.getPackageManager().getPermissionInfo(PERMISSION, 0);
+            return true;
+        } catch (PackageManager.NameNotFoundException unavailable) { return false; }
+    }
+
+    private String setupCommand() throws Exception {
+        String source;
+        String template;
+        try (InputStream input = activity.getAssets().open("terminal/server.py")) {
+            source = Base64.encodeToString(readBytes(input, 100000), Base64.DEFAULT);
+        }
+        try (InputStream input = activity.getAssets().open("terminal/bootstrap.py")) {
+            template = new String(readBytes(input, 20000), StandardCharsets.UTF_8);
+        }
+        return "python - <<'W3_SANDBOX_SETUP'\n"
+            + template.replace("__W3_TOKEN__", token).replace("__W3_SOURCE__", source)
+            + "\nW3_SANDBOX_SETUP\n";
+    }
+
+    void copySetupAndOpenTermux() {
+        activity.runOnUiThread(() -> {
+            try {
+                ClipData clip = ClipData.newPlainText("W3 Terminal setup", setupCommand());
+                if (Build.VERSION.SDK_INT >= 33) {
+                    android.os.PersistableBundle extras = new android.os.PersistableBundle();
+                    extras.putBoolean(android.content.ClipDescription.EXTRA_IS_SENSITIVE, true);
+                    clip.getDescription().setExtras(extras);
+                }
+                ((ClipboardManager) activity.getSystemService(Context.CLIPBOARD_SERVICE)).setPrimaryClip(clip);
+                notifySetup("คัดลอกแล้ว: วางคำสั่งใน Termux แล้วกด Enter จากนั้นกลับมากดเชื่อมต่อ คำสั่งมีรหัสเชื่อมต่อส่วนตัวของเครื่องนี้");
+                openTermux();
+            } catch (Exception error) {
+                notifySetup("คัดลอกคำสั่งเริ่มบริการไม่สำเร็จ: " + error.getMessage());
+            }
+        });
     }
 
     void openTermux() {
@@ -67,6 +112,10 @@ final class TerminalTransport {
                 notifySetup("ไม่พบ Termux โปรดติดตั้งและเปิดแอป Termux ก่อน");
                 return;
             }
+            if (!supportsRunCommand()) {
+                copySetupAndOpenTermux();
+                return;
+            }
             if (Build.VERSION.SDK_INT >= 23 && activity.checkSelfPermission(PERMISSION) != PackageManager.PERMISSION_GRANTED) {
                 activity.requestPermissions(new String[]{PERMISSION}, PERMISSION_REQUEST);
                 return;
@@ -84,17 +133,7 @@ final class TerminalTransport {
             return;
         } catch (Exception unavailable) { /* Start the packaged backend through Termux. */ }
         try {
-            String source;
-            try (InputStream input = activity.getAssets().open("terminal/server.py")) {
-                source = Base64.encodeToString(readBytes(input, 100000), Base64.NO_WRAP);
-            }
-            String script = "set -eu\n"
-                + "command -v python >/dev/null || { echo 'Install Python first: pkg install python'; exit 1; }\n"
-                + "umask 077\nmkdir -p ~/.local/share/w3-sandbox\n"
-                + "printf '%s' '" + source + "' | base64 -d > ~/.local/share/w3-sandbox/server.py\n"
-                + "printf '%s' '" + token + "' > ~/.local/share/w3-sandbox/token\n"
-                + "echo 'W3 Sandbox terminal service on 127.0.0.1:8766. Return to Sandbox to connect.'\n"
-                + "exec python ~/.local/share/w3-sandbox/server.py --token-file ~/.local/share/w3-sandbox/token\n";
+            String script = setupCommand();
             Intent intent = new Intent("com.termux.RUN_COMMAND");
             intent.setClassName("com.termux", "com.termux.app.RunCommandService");
             intent.putExtra("com.termux.RUN_COMMAND_PATH", "/data/data/com.termux/files/usr/bin/bash");

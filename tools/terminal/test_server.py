@@ -4,6 +4,7 @@ import json
 import os
 from pathlib import Path
 import socket
+import signal
 import subprocess
 import sys
 import tempfile
@@ -25,7 +26,7 @@ class TerminalIntegration(unittest.TestCase):
             self.port = listener.getsockname()[1]
         env = dict(os.environ, HOME=str(self.root), SHELL='/bin/bash')
         self.process = subprocess.Popen([sys.executable, str(Path(__file__).with_name('server.py')),
-                                         '--port', str(self.port), '--token-file', str(token_file)], env=env)
+                                         '--port', str(self.port), '--token-file', str(token_file)], env=env, start_new_session=True)
         for _ in range(100):
             try:
                 self.request('GET', '/health')
@@ -40,7 +41,7 @@ class TerminalIntegration(unittest.TestCase):
             for session in self.request('GET', '/sessions')['sessions']:
                 self.request('POST', f"/sessions/{session['id']}/close")
         finally:
-            self.process.terminate()
+            os.killpg(self.process.pid, signal.SIGTERM)
             self.process.wait(timeout=5)
             self.temp.cleanup()
 
@@ -129,6 +130,47 @@ class TerminalIntegration(unittest.TestCase):
         self.request('POST', f'/sessions/{first}/close')
         replacement = self.request('POST', '/sessions')['id']
         self.assertNotEqual(first, replacement)
+
+    def bootstrap(self, token):
+        folder = Path(__file__).parent
+        source = base64.encodebytes((folder / 'server.py').read_bytes()).decode()
+        script = (folder / 'bootstrap.py').read_text().replace('__W3_TOKEN__', token).replace('__W3_SOURCE__', source).replace('PORT = 8766', f'PORT = {self.port}')
+        return "python - <<'W3_SANDBOX_SETUP'\n" + script + '\nW3_SANDBOX_SETUP\n'
+
+    def test_bootstrap_reuses_sessions_and_rejects_other_key(self):
+        original = self.request('GET', '/sessions')['sessions']
+        for token, expected in [(self.token, 0), ('b' * 64, 1)]:
+            result = subprocess.run(['/bin/bash', '-s'], input=self.bootstrap(token), text=True,
+                                    capture_output=True, timeout=5)
+            self.assertEqual(result.returncode, expected)
+        self.assertEqual(self.request('GET', '/sessions')['sessions'], original)
+        self.assertFalse((self.root / '.local/share/w3-sandbox/token').exists())
+
+    def test_bootstrap_installs_packaged_source_and_starts_real_shell(self):
+        for session in self.request('GET', '/sessions')['sessions']:
+            self.request('POST', f"/sessions/{session['id']}/close")
+        os.killpg(self.process.pid, signal.SIGTERM)
+        self.process.wait(timeout=5)
+        env = dict(os.environ, HOME=str(self.root), SHELL='/bin/bash')
+        self.process = subprocess.Popen(['/bin/bash', '-s'], stdin=subprocess.PIPE,
+                                        stdout=subprocess.DEVNULL, env=env, start_new_session=True)
+        self.process.stdin.write(self.bootstrap(self.token).encode())
+        self.process.stdin.close()
+        for _ in range(100):
+            try:
+                self.request('GET', '/health')
+                break
+            except OSError:
+                time.sleep(.05)
+        else:
+            self.fail('bootstrap did not start terminal')
+        installed = self.root / '.local/share/w3-sandbox'
+        self.assertEqual((installed / 'server.py').read_bytes(), Path(__file__).with_name('server.py').read_bytes())
+        self.assertEqual((installed / 'token').read_text(), self.token)
+        self.assertEqual((installed / 'token').stat().st_mode & 0o777, 0o600)
+        session = self.request('GET', '/sessions')['sessions'][0]['id']
+        self.request('POST', f'/sessions/{session}/input', {'data': "printf 'BOOTSTRAP_%s\\n' ok\r"})
+        self.wait_output(session, b'BOOTSTRAP_ok')
 
 
 if __name__ == '__main__':

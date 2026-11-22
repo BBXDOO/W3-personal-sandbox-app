@@ -1,4 +1,4 @@
-const CACHE = 'w3-personal-shell-v58';
+const CACHE = 'w3-personal-shell-v59';
 const SHELL = ['./', './manifest.json', './icon.svg'];
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE).then(async cache => {
