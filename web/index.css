@@ -466,7 +466,7 @@ input::placeholder, textarea::placeholder { color: var(--text-dim); opacity: .65
   }
 }
 
-.terminal-workspace { position: relative; height: 100%; min-height: 0; display: flex; flex-direction: column; overflow-y: auto; padding: 4px; gap: 4px; color: var(--text); background: var(--surface); }
+.terminal-workspace { position: relative; height: 100%; min-height: 0; display: flex; flex-direction: column; overflow: hidden; padding: 4px; gap: 4px; color: var(--text); background: var(--surface); }
 .terminal-toolbar { display: flex; flex-wrap: nowrap; align-items: center; gap: 4px; flex-shrink: 0; }
 .terminal-toolbar button, .terminal-toolbar input, .terminal-toolbar select, .terminal-dialog input { min-height: 34px; border: 1px solid var(--border); border-radius: 7px; padding: 5px 8px; background: var(--surface-2); color: var(--text); font-size: 12px; }
 .terminal-toolbar input { flex: 1 1 0%; min-width: 0; }
@@ -476,7 +476,7 @@ input::placeholder, textarea::placeholder { color: var(--text-dim); opacity: .65
 .terminal-actions, .terminal-keys { overflow-x: auto; scrollbar-width: thin; }
 .terminal-connected { color: #65ce9d; }
 .terminal-disconnected { color: var(--text-dim); }
-.terminal-screen-shell { position: relative; display: flex; flex: 1 1 0%; min-height: 80px; }
+.terminal-screen-shell { position: relative; display: flex; flex: 1 1 0%; min-height: 0; }
 .terminal-screen { flex: 1 1 0%; min-width: 0; overflow: hidden; padding: 5px; border-radius: 8px; background: #111714; }
 .terminal-screen .xterm { height: 100%; }
 .terminal-notice { position: absolute; top: 6px; left: 6px; right: 6px; z-index: 1; display: flex; align-items: flex-start; gap: 8px; max-height: 120px; padding: 7px; color: #e5f2e8; background: #26382ff2; border: 1px solid #547465; border-radius: 6px; font-size: 12px; }
@@ -487,3 +487,39 @@ input::placeholder, textarea::placeholder { color: var(--text-dim); opacity: .65
 .terminal-dialog h2 { font-size: 16px; }
 .terminal-dialog label { font-size: 12px; }
 .terminal-dialog .terminal-toolbar { justify-content: flex-end; }
+
+/* Repository files and document above a bottom command shell. */
+.terminal-three-panes { display: grid; flex: 1 1 0%; min-height: 0; min-width: 0; overflow: hidden; }
+.repository-panes { display: grid; grid-template-columns: clamp(104px, 32%, 230px) minmax(0, 1fr); min-width: 0; min-height: 0; overflow: hidden; border: 1px solid var(--border); border-radius: 7px; background: var(--surface-2); }
+.repository-panes-collapsed { grid-template-columns: minmax(0, 1fr); }
+.repository-explorer, .repository-editor { display: flex; flex-direction: column; min-height: 0; min-width: 0; overflow: hidden; }
+.repository-explorer[hidden] { display: none; }
+.repository-explorer { border-right: 1px solid var(--border); }
+.repository-heading { min-height: 30px; flex-shrink: 0; display: flex; align-items: center; gap: 5px; padding: 3px 6px; border-bottom: 1px solid var(--border); font-size: 11px; }
+.repository-heading strong, .repository-heading > span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.repository-heading small { font-size: 9px; color: var(--text-dim); white-space: nowrap; }
+.repository-heading button, .repository-actions button { min-height: 28px; padding: 3px 5px; font-size: 11px; border: 1px solid var(--border); border-radius: 4px; background: var(--surface); color: var(--text); }
+.repository-actions { display: flex; flex-shrink: 0; gap: 3px; padding: 3px; }
+.repository-actions button:first-child { flex: 1; }
+.repository-root { font-size: 10px; padding: 4px 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex-shrink: 0; }
+.repository-files { flex: 1; min-height: 0; overflow: auto; }
+.repository-tree { margin: 0; padding: 0; list-style: none; min-width: max-content; font: 11px/1.5 var(--font-mono, monospace); }
+.repository-tree .repository-tree { padding-left: 12px; }
+.repository-tree button { text-align: left; width: 100%; min-height: 30px; padding: 4px 6px; border: 0; border-radius: 0; white-space: nowrap; background: transparent; color: var(--text); }
+.repository-tree button:hover, .repository-tree button[aria-current="true"] { background: var(--surface); color: var(--accent); }
+.repository-tree button:disabled { opacity: .45; }
+.repository-hint { padding: 8px; font-size: 11px; line-height: 1.6; color: var(--text-dim); overflow-wrap: anywhere; }
+.repository-document { flex: 1; min-height: 0; min-width: 0; overflow: auto; background: #111714; color: #e5f2e8; }
+.repository-document pre { margin: 0; padding: 8px 8px 8px 0; min-width: max-content; font: 12px/1.65 var(--font-mono, monospace); white-space: pre; tab-size: 4; }
+.repository-code-line { display: inline; }
+.repository-line-number { display: inline-block; width: 42px; padding-right: 10px; text-align: right; color: #84958b; user-select: none; }
+.repository-file-status { padding: 3px 6px; font-size: 10px; color: var(--text-dim); border-top: 1px solid var(--border); flex-shrink: 0; }
+.terminal-pane-divider { touch-action: none; cursor: row-resize; background: var(--surface); display: grid; place-items: center; }
+.terminal-pane-divider::after { content: ''; width: 36px; height: 3px; border-radius: 4px; background: var(--text-dim); }
+.terminal-pane-divider:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.terminal-shell-pane { display: flex; flex-direction: column; min-height: 0; min-width: 0; overflow: hidden; gap: 3px; }
+.terminal-shell-heading { flex-shrink: 0; font: 10px/1.5 var(--font-mono, monospace); color: var(--text-dim); padding: 0 5px; }
+@media (max-height: 500px) {
+  .terminal-keys button, .terminal-shell-pane .terminal-toolbar input, .terminal-shell-pane .terminal-toolbar button { min-height: 27px; padding: 2px 6px; }
+  .terminal-shell-heading { display: none; }
+}

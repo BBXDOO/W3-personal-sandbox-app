@@ -18,6 +18,8 @@ try:
         health = json.load(response)
     if health.get('service') != 'w3-terminal' or health.get('protocol') != 1:
         raise SystemExit('Port 8766 is in use by another service. Stop that service first.')
+    if 'files-v1' not in health.get('capabilities', []):
+        raise SystemExit('W3 Terminal needs an update for Explorer. In the ORIGINAL Termux service tab press Ctrl+C, then paste this setup command again. Running shell sessions will end; repository files are kept.')
     print('W3 Terminal is already running. Return to Sandbox and tap Connect.')
     raise SystemExit(0)
 except HTTPError:

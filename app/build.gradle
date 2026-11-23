@@ -14,8 +14,8 @@ android {
         applicationId 'com.w3personalsandbox.app'
         minSdk 24
         targetSdk 35
-        versionCode 60
-        versionName '0.60'
+        versionCode 61
+        versionName '0.61'
     }
 
     if (hasReleaseSigning) {

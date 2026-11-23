@@ -9,6 +9,7 @@ from pathlib import Path
 import pty
 import signal
 import shutil
+import stat
 import struct
 import termios
 import threading
@@ -17,6 +18,63 @@ from urllib.parse import parse_qs, urlsplit
 import uuid
 
 BUFFER_SIZE = 1024 * 1024
+FILE_LIMIT = 32768
+PAGE_SIZE = 100
+
+
+def workspace_path(body, default_root):
+    root_name, name = body.get('root', default_root), body.get('path', '')
+    if not isinstance(root_name, str) or not isinstance(name, str) or len(root_name) > 4096 or len(name) > 4096:
+        raise ValueError('Invalid workspace path')
+    root = Path(root_name).expanduser().resolve(strict=True)
+    if not root.is_dir():
+        raise ValueError('Workspace root must be a folder')
+    path = (root / name).resolve(strict=True)
+    if not path.is_relative_to(root):
+        raise ValueError('Path is outside the workspace folder')
+    return root, path
+
+
+def list_files(body, default_root):
+    root, path = workspace_path(body, default_root)
+    if not path.is_dir():
+        raise ValueError('Select a folder')
+    offset = body.get('offset', 0)
+    if type(offset) is not int or offset < 0:
+        raise ValueError('Invalid file offset')
+    entries = []
+    with os.scandir(path) as directory:
+        for item in directory:
+            # Do not follow links outside the selected workspace.
+            try:
+                target = Path(item.path).resolve(strict=True)
+                allowed = target.is_relative_to(root)
+                kind = 'folder' if allowed and target.is_dir() else 'file'
+                readable = allowed and (target.is_dir() or target.is_file())
+            except (OSError, RuntimeError):
+                kind, readable = 'file', False
+            entries.append(dict(name=item.name, kind=kind, readable=readable))
+    entries.sort(key=lambda item: (item['kind'] != 'folder', item['name'].casefold(), item['name']))
+    return dict(root=str(root), path=str(path.relative_to(root)),
+                entries=entries[offset:offset + PAGE_SIZE],
+                nextOffset=offset + PAGE_SIZE if offset + PAGE_SIZE < len(entries) else None)
+
+
+def read_file(body, default_root):
+    root, path = workspace_path(body, default_root)
+    # O_NONBLOCK avoids hanging on FIFOs; fstat also rejects devices and sockets.
+    fd = os.open(path, os.O_RDONLY | os.O_NONBLOCK)
+    with os.fdopen(fd, 'rb') as source:
+        info = os.fstat(source.fileno())
+        if not stat.S_ISREG(info.st_mode):
+            raise ValueError('Only regular text files can be opened')
+        data = source.read(FILE_LIMIT + 1)
+    if len(data) > FILE_LIMIT:
+        raise ValueError('File exceeds 32 KiB; open it in the shell')
+    if b'\0' in data:
+        raise ValueError('Binary file; open it with a suitable tool in the shell')
+    return dict(root=str(root), path=str(path.relative_to(root)), content=data.decode('utf-8-sig'),
+                size=len(data))
 
 
 class Session:
@@ -117,7 +175,7 @@ class Handler(BaseHTTPRequestHandler):
                 if not isinstance(body, dict):
                     raise ValueError('JSON object required')
             if self.command == 'GET' and url.path == '/health':
-                self.reply(200, dict(ok=True, service='w3-terminal', protocol=1))
+                self.reply(200, dict(ok=True, service='w3-terminal', protocol=1, capabilities=['files-v1']))
                 return
             if url.path == '/sessions':
                 with self.server.sessions_lock:
@@ -148,7 +206,10 @@ class Handler(BaseHTTPRequestHandler):
                 self.reply(404, dict(error='Session no longer exists'))
                 return
             action = parts[2]
-            if action == 'output' and self.command == 'GET':
+            if action in ('files', 'read') and self.command == 'POST':
+                result = list_files(body, session.cwd) if action == 'files' else read_file(body, session.cwd)
+                self.reply(200, result)
+            elif action == 'output' and self.command == 'GET':
                 offset = int(parse_qs(url.query).get('offset', ['0'])[0])
                 self.reply(200, session.snapshot(offset))
             elif action == 'input' and self.command == 'POST':
@@ -174,7 +235,7 @@ class Handler(BaseHTTPRequestHandler):
                 self.reply(200, dict(ok=True))
             else:
                 self.reply(404, dict(error='Unknown endpoint'))
-        except (ValueError, KeyError, TypeError, OSError) as error:
+        except (ValueError, KeyError, TypeError, OSError, RuntimeError) as error:
             self.reply(400, dict(error=str(error)))
 
     @staticmethod

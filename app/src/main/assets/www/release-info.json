@@ -1,9 +1,9 @@
 {
   "schema": "w3.sandbox.manual-release.v1",
-  "versionCode": 60,
-  "versionName": "0.60",
-  "manualSha256": "fc6532d55757bd4042ce51e8c1a8b43458a77589670359d7645a1b52f6964163",
-  "sourceSha256": "81f3f82bd5bc90c4dabef82489477b7ff784ae37b17121bd33ccd014861968fe",
+  "versionCode": 61,
+  "versionName": "0.61",
+  "manualSha256": "426fa5551feb5504e684a7002e0d3361e6b63933ece3fa0b97182ef16314103f",
+  "sourceSha256": "742c811c2ab62c7e144aab9ec4b704735544ea5bcb865f9a1638a625293a1fc4",
   "menus": [
     "home",
     "story",

@@ -3,12 +3,18 @@ import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import '@xterm/xterm/css/xterm.css';
 import { terminalBridge, terminalRequest } from './terminalClient';
+import RepositoryPane from './RepositoryPane';
 
 interface ShellSession { id: string; cwd: string; exitCode: number | null; }
 interface Output { data: string; offset: number; truncated: boolean; exitCode: number | null; }
 
 export default function TerminalWorkspace() {
   const host = useRef<HTMLDivElement>(null);
+  const panes = useRef<HTMLDivElement>(null);
+  const [shellPercent, setShellPercent] = useState(45);
+  const [explorerOpen, setExplorerOpen] = useState(true);
+  const [filesAvailable, setFilesAvailable] = useState(false);
+  const [upgradeOpen, setUpgradeOpen] = useState(false);
   const terminal = useRef<Terminal | null>(null);
   const sessionId = useRef('');
   const inputQueue = useRef(Promise.resolve());
@@ -43,7 +49,7 @@ export default function TerminalWorkspace() {
     const resize = () => {
       if (!host.current?.clientWidth || !host.current?.clientHeight) return;
       fit.fit();
-      if (sessionId.current) terminalRequest('POST', `/sessions/${sessionId.current}/resize`, { cols: screen.cols, rows: screen.rows }).catch(report);
+      if (sessionId.current) terminalRequest('POST', `/sessions/${sessionId.current}/resize`, { cols: Math.max(2, screen.cols), rows: Math.max(2, screen.rows) }).catch(report);
     };
     const observer = new ResizeObserver(resize);
     observer.observe(host.current!);
@@ -54,7 +60,8 @@ export default function TerminalWorkspace() {
   const connect = async () => {
     setBusy(true);
     try {
-      await terminalRequest('GET', '/health');
+      const health = await terminalRequest<{ capabilities?: string[] }>('GET', '/health');
+      setFilesAvailable(health.capabilities?.includes('files-v1') === true);
       const result = await terminalRequest<{ sessions: ShellSession[] }>('GET', '/sessions');
       setSessions(result.sessions);
       setSelected(current => result.sessions.some(s => s.id === current) ? current : result.sessions.find(s => s.exitCode === null)?.id || result.sessions[0]?.id || '');
@@ -90,7 +97,7 @@ export default function TerminalWorkspace() {
     let offset = 0;
     terminal.current?.reset();
     const screen = terminal.current!;
-    terminalRequest('POST', `/sessions/${selected}/resize`, { cols: screen.cols, rows: screen.rows }).catch(report);
+    terminalRequest('POST', `/sessions/${selected}/resize`, { cols: Math.max(2, screen.cols), rows: Math.max(2, screen.rows) }).catch(report);
     const poll = async () => {
       try {
         const result = await terminalRequest<Output>('GET', `/sessions/${selected}/output?offset=${offset}`);
@@ -115,7 +122,7 @@ export default function TerminalWorkspace() {
     setBusy(true);
     try {
       const screen = terminal.current!;
-      const session = await terminalRequest<ShellSession>('POST', '/sessions', { cwd: cwd.trim() || '~', cols: screen.cols, rows: screen.rows });
+      const session = await terminalRequest<ShellSession>('POST', '/sessions', { cwd: cwd.trim() || '~', cols: Math.max(2, screen.cols), rows: Math.max(2, screen.rows) });
       setSessions(current => [...current, session]);
       setSelected(session.id);
       setMessage('');
@@ -159,6 +166,27 @@ export default function TerminalWorkspace() {
       }}>{automatic ? 'เตรียม session' : 'คัดลอกและเปิด Termux'}</button>
       {automatic && bridge?.copyTerminalSetup && <button onClick={() => bridge.copyTerminalSetup()}>คัดลอกคำสั่ง</button>}
     </div>
+    <div ref={panes} className="terminal-three-panes" style={{ gridTemplateRows: `minmax(0, ${100 - shellPercent}fr) 10px minmax(0, ${shellPercent}fr)` }}>
+      <RepositoryPane key={`${selected}-${connected}`} session={selected}
+        initialRoot={sessions.find(session => session.id === selected)?.cwd || '~'} available={filesAvailable}
+        connected={connected} explorerOpen={explorerOpen} onToggle={() => setExplorerOpen(current => !current)} onUpgrade={() => setUpgradeOpen(true)} />
+      <div className="terminal-pane-divider" role="separator" aria-label="ปรับความสูง shell" aria-orientation="horizontal"
+        aria-valuemin={25} aria-valuemax={75} aria-valuenow={shellPercent} tabIndex={0}
+        onKeyDown={event => {
+          if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
+            event.preventDefault();
+            setShellPercent(current => Math.max(25, Math.min(75, current + (event.key === 'ArrowUp' ? 5 : -5))));
+          }
+        }}
+        onPointerDown={event => event.currentTarget.setPointerCapture(event.pointerId)}
+        onPointerMove={event => {
+          if (!event.currentTarget.hasPointerCapture(event.pointerId)) return;
+          const bounds = panes.current!.getBoundingClientRect();
+          setShellPercent(Math.max(25, Math.min(75, Math.round((bounds.bottom - event.clientY) / bounds.height * 100))));
+        }}
+        onPointerUp={event => event.currentTarget.releasePointerCapture(event.pointerId)} />
+      <section className="terminal-shell-pane" aria-label="Command shell ด้านล่าง">
+      <div className="terminal-shell-heading">TERMINAL</div>
     <div className="terminal-screen-shell">
       <div ref={host} className="terminal-screen" aria-label="หน้าจอ shell" />
       {message && <div className="terminal-notice" role="status">
@@ -175,6 +203,17 @@ export default function TerminalWorkspace() {
       <input aria-label="คำสั่ง Terminal" placeholder="คำสั่ง" value={command} onChange={event => setCommand(event.target.value)} autoCapitalize="none" autoCorrect="off" spellCheck={false} disabled={!selected || !connected} />
       <button disabled={!selected || !connected || !command.trim()}>รัน ↵</button>
     </form>
+      </section>
+    </div>
+    {upgradeOpen && <div className="terminal-dialog-backdrop">
+      <section className="terminal-dialog" role="dialog" aria-modal="true" aria-labelledby="terminal-upgrade-title">
+        <h2 id="terminal-upgrade-title">อัปเดตบริการ Termux</h2>
+        <p>กลับไปแท็บ Termux ที่แสดง Starting W3 Terminal แล้วกด Ctrl+C เพื่อหยุดบริการเดิม จากนั้นวางคำสั่งที่คัดลอกใหม่แล้วกด Enter</p>
+        <p>session เดิมจะจบลง ไฟล์รีโป้ยังอยู่ครบ</p>
+        <div className="terminal-toolbar"><button onClick={() => setUpgradeOpen(false)}>ไว้ก่อน</button>
+          <button onClick={() => { bridge?.copyTerminalSetup(); setUpgradeOpen(false); }}>คัดลอกและเปิด Termux</button></div>
+      </section>
+    </div>}
     {sessionFormOpen && <div className="terminal-dialog-backdrop">
       <form className="terminal-dialog" role="dialog" aria-modal="true" aria-labelledby="terminal-session-title"
         onKeyDown={event => { if (event.key === 'Escape') setSessionFormOpen(false); }}

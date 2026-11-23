@@ -1,13 +1,14 @@
 {
   "name": "w3-personal-sandbox",
   "private": true,
-  "version": "0.60.0",
+  "version": "0.61.0",
   "scripts": {
     "dev": "npm --prefix web run dev",
     "lint": "npm --prefix web run lint",
     "review:manual": "npm --prefix web run review:manual",
     "check:manual": "npm --prefix web run check:manual",
     "build": "sh ./sync-web-assets.sh",
-    "verify:release": "npm --prefix web run verify:release && python3 check-release.py"
+    "verify:release": "npm --prefix web run verify:release && python3 check-release.py",
+    "test:terminal": "npm --prefix web run test:terminal"
   }
 }

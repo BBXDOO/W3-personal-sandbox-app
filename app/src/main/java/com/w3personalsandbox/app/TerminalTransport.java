@@ -189,7 +189,7 @@ final class TerminalTransport {
             JSONObject result = new JSONObject();
             try {
                 if (!("GET".equals(method) || "POST".equals(method))
-                    || !path.matches("/(health|sessions|sessions/[a-f0-9]{32}/(input|resize|close|output(?:\\?offset=[0-9]+)?))"))
+                    || !path.matches("/(health|sessions|sessions/[a-f0-9]{32}/(input|resize|close|files|read|output(?:\\?offset=[0-9]+)?))"))
                     throw new IllegalArgumentException("Unsupported terminal request");
                 result.put("body", exchange(method, path, body));
                 result.put("ok", true);
