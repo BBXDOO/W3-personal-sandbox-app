@@ -1,0 +1,20 @@
+import React from 'react';
+import assert from 'node:assert/strict';
+import { renderToStaticMarkup } from 'react-dom/server';
+import { readFileSync } from 'node:fs';
+import TerminalWorkspace from '../features/terminal/TerminalWorkspace';
+
+(globalThis as any).window = {};
+const html = renderToStaticMarkup(<TerminalWorkspace />);
+assert.ok(!html.includes('ตั้งค่าครั้งแรก'));
+assert.ok(!html.includes('terminal-setup'));
+assert.ok(!html.includes('โฟลเดอร์ใหม่ เช่น'));
+assert.ok(html.includes('เครื่องมือ Terminal'));
+assert.ok(html.indexOf('terminal-actions') < html.indexOf('terminal-screen-shell'));
+assert.ok(html.indexOf('terminal-screen-shell') < html.indexOf('terminal-keys'));
+assert.ok(html.includes('หน้าจอ shell'));
+assert.ok(html.includes('คำสั่ง Terminal'));
+const css = readFileSync('web/index.css', 'utf8');
+assert.match(css, /\.terminal-toolbar\s*\{[^}]*flex-wrap:\s*nowrap/);
+assert.match(css, /\.terminal-screen-shell\s*\{[^}]*flex:\s*1\s+1\s+0%/);
+console.log('Terminal layout: compact tools, expanding screen and no setup instructions passed');

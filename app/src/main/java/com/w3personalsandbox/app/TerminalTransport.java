@@ -86,7 +86,7 @@ final class TerminalTransport {
                     clip.getDescription().setExtras(extras);
                 }
                 ((ClipboardManager) activity.getSystemService(Context.CLIPBOARD_SERVICE)).setPrimaryClip(clip);
-                notifySetup("คัดลอกแล้ว: วางคำสั่งใน Termux แล้วกด Enter จากนั้นกลับมากดเชื่อมต่อ คำสั่งมีรหัสเชื่อมต่อส่วนตัวของเครื่องนี้");
+                notifySetup("คัดลอกคำสั่งเริ่มบริการแล้ว");
                 openTermux();
             } catch (Exception error) {
                 notifySetup("คัดลอกคำสั่งเริ่มบริการไม่สำเร็จ: " + error.getMessage());
@@ -103,7 +103,7 @@ final class TerminalTransport {
     }
 
     void permissionDenied() {
-        notifySetup("ยังไม่ได้รับสิทธิ์ Run commands in Termux โปรดอนุญาตในหน้าสิทธิ์เพิ่มเติมของแอป Sandbox แล้วกดเตรียม session อีกครั้ง");
+        notifySetup("ไม่ได้รับสิทธิ์ Run commands in Termux");
     }
 
     void prepare() {
@@ -146,12 +146,12 @@ final class TerminalTransport {
             activity.runOnUiThread(() -> {
                 try {
                     activity.startService(intent);
-                    notifySetup("ส่งคำขอสร้าง session แล้ว รอครู่หนึ่งแล้วกดเชื่อมต่อ หากยังไม่พร้อม ให้ตรวจ allow-external-apps และ Python ใน Termux");
+                    notifySetup("กำลังเริ่มบริการ Termux…");
                     openTermux();
                     requests.execute(this::waitForServer);
                 } catch (Exception error) {
                     preparing.set(false);
-                    notifySetup("เริ่ม Termux ไม่สำเร็จ ตรวจสิทธิ์ Run commands in Termux และ allow-external-apps");
+                    notifySetup("เริ่ม Termux ไม่สำเร็จ: " + error.getMessage());
                 }
             });
         } catch (Exception error) {
@@ -170,7 +170,7 @@ final class TerminalTransport {
                     return;
                 } catch (Exception unavailable) { Thread.sleep(250); }
             }
-            notifySetup("บริการยังไม่ตอบกลับ ตรวจ Python, allow-external-apps และสิทธิ์ Termux แล้วกดเตรียม session อีกครั้ง");
+            notifySetup("บริการ Terminal ไม่ตอบกลับ");
         } catch (InterruptedException interrupted) {
             Thread.currentThread().interrupt();
         } finally { preparing.set(false); }
