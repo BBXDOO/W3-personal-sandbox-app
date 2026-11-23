@@ -8,6 +8,8 @@ import signal
 import subprocess
 import sys
 import tempfile
+import threading
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import time
 import unittest
 from urllib.error import HTTPError
@@ -111,6 +113,91 @@ class TerminalIntegration(unittest.TestCase):
             time.sleep(.03)
         else:
             self.fail('shell exit status missing')
+
+    def test_explorer_reads_real_files_without_changing_shell_or_repo(self):
+        repo = self.root / 'repo'
+        repo.mkdir()
+        (repo / 'folder').mkdir()
+        content = '<script>not HTML</script>\nสวัสดี 🖥\n'
+        (repo / 'file.txt').write_text(content, encoding='utf-8')
+        (repo / 'folder' / 'nested.py').write_text('print(42)\n')
+        (repo / 'linked.txt').symlink_to(repo / 'file.txt')
+        session = self.request('POST', '/sessions', {'cwd': str(repo)})['id']
+        files = f'/sessions/{session}/files'
+        read = f'/sessions/{session}/read'
+        self.assertIn('files-v1', self.request('GET', '/health')['capabilities'])
+        listing = self.request('POST', files)
+        self.assertEqual(listing['root'], str(repo))
+        self.assertEqual(listing['entries'][0]['name'], 'folder')
+        self.assertEqual(self.request('POST', files, {'path': 'folder'})['entries'][0]['name'], 'nested.py')
+        result = self.request('POST', read, {'path': 'file.txt'})
+        self.assertEqual(result['content'], content)
+        self.assertEqual(result['size'], len(content.encode('utf-8')))
+        self.assertEqual(self.request('POST', read, {'path': 'linked.txt'})['content'], content)
+        self.assertEqual((repo / 'file.txt').read_text(), content)
+        # Browsing another selected folder never sends cd/input to the running shell.
+        self.assertEqual(self.request('POST', files, {'root': str(self.root)})['root'], str(self.root))
+        self.request('POST', f'/sessions/{session}/input', {'data': "printf 'CWD_%s\\n' \"$PWD\"\r"})
+        self.wait_output(session, ('CWD_' + str(repo)).encode())
+        # Listings are paged and stable; hidden files and spaces remain accessible.
+        for index in range(108):
+            (repo / f'item {index:03d}').touch()
+        (repo / '.hidden').write_text('hidden')
+        first = self.request('POST', files)
+        second = self.request('POST', files, {'offset': first['nextOffset']})
+        self.assertEqual(len(first['entries']), 100)
+        self.assertIsNone(second['nextOffset'])
+        self.assertEqual(len({item['name'] for item in first['entries'] + second['entries']}), 112)
+        self.assertEqual(self.request('POST', read, {'path': '.hidden'})['content'], 'hidden')
+
+    def test_explorer_rejects_escape_binary_large_special_and_unauthenticated_reads(self):
+        repo = self.root / 'repo'
+        repo.mkdir()
+        (self.root / 'outside').write_text('private')
+        (repo / 'escape').symlink_to(self.root / 'outside')
+        (repo / 'broken').symlink_to(repo / 'missing')
+        (repo / 'binary').write_bytes(b'a\x00b')
+        (repo / 'bad-encoding').write_bytes(b'\xff')
+        (repo / 'large').write_bytes(b'a' * 32769)
+        os.mkfifo(repo / 'pipe')
+        session = self.request('POST', '/sessions', {'cwd': str(repo)})['id']
+        files, read = f'/sessions/{session}/files', f'/sessions/{session}/read'
+        for path in ('../outside', str(self.root / 'outside'), 'escape', 'broken', 'binary', 'bad-encoding', 'large', 'pipe', '.'):
+            with self.subTest(path=path), self.assertRaises(HTTPError) as error:
+                self.request('POST', read, {'path': path})
+            self.assertEqual(error.exception.code, 400)
+        for endpoint in (files, read):
+            with self.assertRaises(HTTPError) as error:
+                self.request('POST', endpoint, token='wrong')
+            self.assertEqual(error.exception.code, 401)
+        listing = self.request('POST', files)
+        self.assertFalse(next(item for item in listing['entries'] if item['name'] == 'escape')['readable'])
+        for body in ({'offset': -1}, {'offset': '0'}, {'path': '../'}, {'root': []}):
+            with self.assertRaises(HTTPError):
+                self.request('POST', files, body)
+
+    def test_old_service_upgrade_preserves_running_service(self):
+        class OldService(BaseHTTPRequestHandler):
+            def do_GET(self):
+                self.send_response(200)
+                self.end_headers()
+                self.wfile.write(b'{"service":"w3-terminal","protocol":1}')
+            def log_message(self, *_args):
+                pass
+        old = ThreadingHTTPServer(('127.0.0.1', 0), OldService)
+        thread = threading.Thread(target=old.serve_forever, daemon=True)
+        thread.start()
+        try:
+            script = self.bootstrap(self.token).replace(f'PORT = {self.port}', f'PORT = {old.server_port}')
+            result = subprocess.run(['/bin/bash', '-s'], input=script, text=True, capture_output=True, timeout=5)
+            self.assertEqual(result.returncode, 1)
+            self.assertIn('ORIGINAL Termux service tab', result.stderr)
+            with urlopen(f'http://127.0.0.1:{old.server_port}/health', timeout=2) as response:
+                self.assertEqual(json.load(response)['protocol'], 1)
+        finally:
+            old.shutdown()
+            old.server_close()
+            thread.join(timeout=2)
 
     def test_session_limit_and_bounded_replay(self):
         first = self.request('GET', '/sessions')['sessions'][0]['id']

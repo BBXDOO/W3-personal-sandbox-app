@@ -1,4 +1,4 @@
-# W3 Personal Sandbox — v60 (0.60)
+# W3 Personal Sandbox — v61 (0.61)
 
 ฐานพัฒนา Personal Sandbox รวมซอร์ส React/TypeScript และ Android ไว้ในรีโป้นี้
 
@@ -52,3 +52,7 @@ v58 เพิ่มเมนู 🖥 Terminal ใต้ “รูปแบบ”
 รุ่น v59 ตรวจความสามารถ RUN_COMMAND ของ Termux ก่อนขอสิทธิ์ หากไม่มีบริการนั้น จะแสดงปุ่มคัดลอกคำสั่งและเปิด Termux ให้ผู้ใช้วางและเริ่มบริการด้วย Python ได้ รหัสเชื่อมต่อถูกใส่ในคำสั่งโดย native และไม่ส่งเข้า JavaScript ตรวจ template ที่ใช้เริ่มบริการทั้งสองวิธีก่อน build ทุกครั้ง
 
 รุ่น v60 ขยายพื้นที่ Terminal ขึ้นใต้แถบเครื่องมือแถวเดียว เอากล่องคำแนะนำออกจากหน้า Terminal และย้ายช่องเลือกโฟลเดอร์ไปหน้าต่างสร้าง session ข้อความสถานะแสดงทับบนพื้นที่ Terminal และปิดได้
+
+รุ่น v61 จัด Terminal เป็นสามส่วน Explorer ทางซ้าย พื้นที่เปิดดูไฟล์ด้านบน และ shell ด้านล่าง พร้อมพับ Explorer และลากปรับความสูง shell ได้ Explorer อ่านไฟล์จริงใน Termux ผ่าน POST `/sessions/<id>/files` และ `/sessions/<id>/read` โดยใช้ token เดิมจาก native รองรับ UTF-8 ไม่เกิน 32 KiB และแบ่งรายชื่อ 100 รายการต่อหน้า ไม่มี endpoint เขียนไฟล์ การเลือกโฟลเดอร์ไม่เปลี่ยน cwd หรือ branch ของ shell
+
+Health ยังคง protocol 1 และเพิ่ม `capabilities: ["files-v1"]` เพื่อระบุ Explorer บริการเก่ายังใช้ shell ต่อได้และหน้าแอปแสดงปุ่มอัปเดตบริการก่อนใช้ Explorer Bootstrap จะไม่หยุด shell เก่าอัตโนมัติ ต้องหยุดบริการต้นทางใน Termux แล้ววางคำสั่งใหม่ รายละเอียดอยู่ในคู่มือ ทดสอบโครงหน้าจอด้วย `npm run test:terminal` และทดสอบ transport/ไฟล์จริงด้วยชุดทดสอบ Python ข้างต้น

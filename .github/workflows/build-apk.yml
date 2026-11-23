@@ -38,6 +38,7 @@ jobs:
           python3 -m unittest discover -s tools/terminal -p 'test_*.py' -v
           npm ci --prefix web
           npm run lint
+          npm run test:terminal
           npm run check:manual
           npm run build
           npm run verify:release
