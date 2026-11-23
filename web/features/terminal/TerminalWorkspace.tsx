@@ -20,6 +20,7 @@ export default function TerminalWorkspace() {
   const [cwd, setCwd] = useState('');
   const [command, setCommand] = useState('');
   const [automatic, setAutomatic] = useState(true);
+  const [sessionFormOpen, setSessionFormOpen] = useState(false);
   const bridge = terminalBridge();
   const report = (error: unknown) => setMessage(error instanceof Error ? error.message : String(error));
 
@@ -58,7 +59,7 @@ export default function TerminalWorkspace() {
       setSessions(result.sessions);
       setSelected(current => result.sessions.some(s => s.id === current) ? current : result.sessions.find(s => s.exitCode === null)?.id || result.sessions[0]?.id || '');
       setConnected(true);
-      setMessage(result.sessions.length ? 'เชื่อมต่อแล้ว' : 'เชื่อมต่อแล้ว เลือกโฟลเดอร์แล้วสร้าง session');
+      setMessage(result.sessions.length ? '' : 'ยังไม่มี session');
     } catch (error) { setConnected(false); report(error); }
     finally { setBusy(false); }
   };
@@ -117,7 +118,8 @@ export default function TerminalWorkspace() {
       const session = await terminalRequest<ShellSession>('POST', '/sessions', { cwd: cwd.trim() || '~', cols: screen.cols, rows: screen.rows });
       setSessions(current => [...current, session]);
       setSelected(session.id);
-      setMessage('สร้าง session แล้ว');
+      setMessage('');
+      setSessionFormOpen(false);
     } catch (error) { report(error); }
     finally { setBusy(false); }
   };
@@ -136,50 +138,56 @@ export default function TerminalWorkspace() {
   };
 
   return <section className="terminal-workspace" aria-label="Terminal W3">
-    <header className="terminal-toolbar">
-      <strong>🖥 Terminal</strong>
-      <button onClick={() => bridge?.openTermux ? bridge.openTermux() : setMessage('ปุ่มเปิด Termux ใช้งานในแอป Android')}>เปิด Termux</button>
-      <button disabled={!bridge?.prepareTerminal || busy} onClick={() => {
-        if (automatic) { setMessage('กำลังเตรียม session ใน Termux…'); bridge?.prepareTerminal(); }
-        else bridge?.copyTerminalSetup();
-      }}>{automatic ? 'เตรียม session' : 'คัดลอกและเปิด Termux'}</button>
-      <button disabled={!bridge?.terminalRequest || busy} onClick={connect}>เชื่อมต่อ</button>
-    </header>
-    <div className="terminal-status" role="status">{connected ? '● เชื่อมต่อ Termux' : '○ ยังไม่เชื่อมต่อ'}{message && ` · ${message}`}</div>
-    {!connected && <details className="terminal-setup" open>
-      <summary>ตั้งค่าครั้งแรก</summary>
-      {automatic ? <ol>
-        <li>เปิด Termux แล้วติดตั้ง Python ด้วย <code>pkg install python</code></li>
-        <li>เปิดไฟล์ <code>~/.termux/termux.properties</code> แล้วตั้ง <code>allow-external-apps = true</code> จากนั้นรัน <code>termux-reload-settings</code></li>
-        <li>กด “เตรียม session” และอนุญาต Run commands in Termux หากไม่ได้รับสิทธิ์ ให้เปิดการตั้งค่าแอป Sandbox → สิทธิ์เพิ่มเติม</li>
-        <li>รอ Termux เริ่มบริการเบื้องหลัง แล้วกลับมาที่ Sandbox กด “เชื่อมต่อ”</li>
-      </ol> : <ol>
-        <li>กด “คัดลอกและเปิด Termux”</li>
-        <li>ใน Termux แตะค้างแล้วเลือก “วาง” จากนั้นกด Enter เพื่อเริ่มบริการ</li>
-        <li>เปิด session นี้ค้างไว้ กลับมาที่ Sandbox แล้วกด “เชื่อมต่อ”</li>
-      </ol>}
-      {!automatic && <p>คำสั่งเริ่มบริการใช้ Python ที่ติดตั้งใน Termux และมีรหัสเชื่อมต่อส่วนตัวของเครื่องนี้ ให้ใช้วางใน Termux บนเครื่องนี้</p>}
-      {automatic && bridge?.copyTerminalSetup && <button onClick={() => bridge.copyTerminalSetup()}>เริ่มบริการด้วยคำสั่งใน Termux</button>}
-      <p>session แรกเปิดในโฟลเดอร์ W3 หากมีอยู่ใน home ของ Termux การรันคำสั่งใช้ไฟล์และสิทธิ์ของ Termux บนเครื่องคุณ</p>
-    </details>}
-    <div className="terminal-toolbar">
-      <select aria-label="Session" value={selected} disabled={!connected} onChange={event => setSelected(event.target.value)}>
+    <div className="terminal-toolbar terminal-actions" aria-label="เครื่องมือ Terminal">
+      <button disabled={!bridge?.terminalRequest || busy} onClick={connect}
+        title={connected ? 'เชื่อมต่อแล้ว' : 'ยังไม่เชื่อมต่อ'}>
+        <span className={connected ? 'terminal-connected' : 'terminal-disconnected'} aria-hidden="true">●</span> เชื่อมต่อ
+      </button>
+      {connected && <><select aria-label="Session" value={selected} onChange={event => setSelected(event.target.value)}>
         <option value="">เลือก session</option>
         {sessions.map((session, index) => <option key={session.id} value={session.id}>{index + 1} · {session.cwd}</option>)}
       </select>
-      <input aria-label="โฟลเดอร์ของ session ใหม่" placeholder="โฟลเดอร์ใหม่ เช่น ~/W3_HB_team_BXCGICOG" value={cwd} onChange={event => setCwd(event.target.value)} />
-      <button disabled={!connected || busy} onClick={createSession}>＋ Session</button>
-      <button disabled={!connected || !selected || busy} onClick={closeSession}>ปิด session</button>
+      <button disabled={!connected || busy} onClick={() => {
+        setCwd(sessions.find(session => session.id === selected)?.cwd || '~');
+        setSessionFormOpen(true);
+      }}>＋ Session</button>
+      <button disabled={!selected || busy} onClick={closeSession}>ปิด session</button></>}
+      <button onClick={() => bridge?.openTermux ? bridge.openTermux() : setMessage('ปุ่มเปิด Termux ใช้งานในแอป Android')}>เปิด Termux</button>
+      <button disabled={!bridge?.prepareTerminal || busy} onClick={() => {
+        if (automatic) { setMessage('กำลังเตรียม session…'); bridge?.prepareTerminal(); }
+        else bridge?.copyTerminalSetup();
+      }}>{automatic ? 'เตรียม session' : 'คัดลอกและเปิด Termux'}</button>
+      {automatic && bridge?.copyTerminalSetup && <button onClick={() => bridge.copyTerminalSetup()}>คัดลอกคำสั่ง</button>}
     </div>
-    <div ref={host} className="terminal-screen" aria-label="หน้าจอ shell" />
+    <div className="terminal-screen-shell">
+      <div ref={host} className="terminal-screen" aria-label="หน้าจอ shell" />
+      {message && <div className="terminal-notice" role="status">
+        <span>{message}</span>
+        <button type="button" aria-label="ปิดข้อความสถานะ" onClick={() => setMessage('')}>×</button>
+      </div>}
+    </div>
     <div className="terminal-toolbar terminal-keys">
       <button disabled={!selected || !connected} onClick={() => terminal.current?.focus()}>คีย์บอร์ด</button>
       {([['Ctrl+C', '\x03'], ['Tab', '\t'], ['Esc', '\x1b'], ['↑', '\x1b[A'], ['↓', '\x1b[B'], ['←', '\x1b[D'], ['→', '\x1b[C']] as const).map(([label, data]) =>
         <button key={label} disabled={!selected || !connected} onClick={() => send(data)}>{label}</button>)}
     </div>
     <form className="terminal-toolbar" onSubmit={event => { event.preventDefault(); if (command.trim()) { send(command + '\r'); setCommand(''); } }}>
-      <input aria-label="คำสั่ง Terminal" placeholder="พิมพ์คำสั่ง เช่น git status" value={command} onChange={event => setCommand(event.target.value)} autoCapitalize="none" autoCorrect="off" spellCheck={false} disabled={!selected || !connected} />
+      <input aria-label="คำสั่ง Terminal" placeholder="คำสั่ง" value={command} onChange={event => setCommand(event.target.value)} autoCapitalize="none" autoCorrect="off" spellCheck={false} disabled={!selected || !connected} />
       <button disabled={!selected || !connected || !command.trim()}>รัน ↵</button>
     </form>
+    {sessionFormOpen && <div className="terminal-dialog-backdrop">
+      <form className="terminal-dialog" role="dialog" aria-modal="true" aria-labelledby="terminal-session-title"
+        onKeyDown={event => { if (event.key === 'Escape') setSessionFormOpen(false); }}
+        onSubmit={event => { event.preventDefault(); if (!busy) void createSession(); }}>
+        <h2 id="terminal-session-title">สร้าง session</h2>
+        <label htmlFor="terminal-cwd">โฟลเดอร์รีโป้</label>
+        <input id="terminal-cwd" autoFocus value={cwd} onChange={event => setCwd(event.target.value)}
+          autoCapitalize="none" autoCorrect="off" spellCheck={false} />
+        <div className="terminal-toolbar">
+          <button type="button" onClick={() => setSessionFormOpen(false)}>ยกเลิก</button>
+          <button type="submit" disabled={busy}>สร้าง session</button>
+        </div>
+      </form>
+    </div>}
   </section>;
 }

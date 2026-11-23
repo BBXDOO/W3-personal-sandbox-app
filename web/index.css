@@ -466,18 +466,24 @@ input::placeholder, textarea::placeholder { color: var(--text-dim); opacity: .65
   }
 }
 
-.terminal-workspace { height: 100%; min-height: 0; display: flex; flex-direction: column; overflow-y: auto; padding: 8px; gap: 7px; color: var(--text); background: var(--surface); }
-.terminal-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; flex-shrink: 0; }
-.terminal-toolbar strong { margin-right: auto; font-size: 14px; }
-.terminal-toolbar button, .terminal-toolbar input, .terminal-toolbar select { min-height: 36px; border: 1px solid var(--border); border-radius: 7px; padding: 6px 9px; background: var(--surface-2); color: var(--text); font-size: 12px; }
-.terminal-toolbar input { flex: 1 1 140px; min-width: 80px; }
-.terminal-toolbar select { flex: 1 1 120px; min-width: 80px; max-width: 100%; }
+.terminal-workspace { position: relative; height: 100%; min-height: 0; display: flex; flex-direction: column; overflow-y: auto; padding: 4px; gap: 4px; color: var(--text); background: var(--surface); }
+.terminal-toolbar { display: flex; flex-wrap: nowrap; align-items: center; gap: 4px; flex-shrink: 0; }
+.terminal-toolbar button, .terminal-toolbar input, .terminal-toolbar select, .terminal-dialog input { min-height: 34px; border: 1px solid var(--border); border-radius: 7px; padding: 5px 8px; background: var(--surface-2); color: var(--text); font-size: 12px; }
+.terminal-toolbar input { flex: 1 1 0%; min-width: 0; }
+.terminal-toolbar select { flex: 0 0 140px; width: 140px; min-width: 0; }
+.terminal-toolbar button { flex-shrink: 0; white-space: nowrap; }
 .terminal-toolbar button:disabled { opacity: .45; cursor: default; }
-.terminal-status { flex-shrink: 0; font-size: 11px; overflow-wrap: anywhere; }
-.terminal-setup { flex-shrink: 0; max-height: min(24vh, 160px); overflow-y: auto; padding: 8px; background: var(--surface-2); border-radius: 8px; font-size: 12px; line-height: 1.7; }
-.terminal-setup ol { list-style: decimal; padding-left: 22px; }
-.terminal-setup code { font-family: monospace; overflow-wrap: anywhere; }
-.terminal-screen { flex: 1 1 180px; min-height: 80px; overflow: hidden; padding: 5px; border-radius: 8px; background: #111714; }
+.terminal-actions, .terminal-keys { overflow-x: auto; scrollbar-width: thin; }
+.terminal-connected { color: #65ce9d; }
+.terminal-disconnected { color: var(--text-dim); }
+.terminal-screen-shell { position: relative; display: flex; flex: 1 1 0%; min-height: 80px; }
+.terminal-screen { flex: 1 1 0%; min-width: 0; overflow: hidden; padding: 5px; border-radius: 8px; background: #111714; }
 .terminal-screen .xterm { height: 100%; }
-.terminal-keys { flex-wrap: nowrap; overflow-x: auto; }
-.terminal-keys button { flex-shrink: 0; }
+.terminal-notice { position: absolute; top: 6px; left: 6px; right: 6px; z-index: 1; display: flex; align-items: flex-start; gap: 8px; max-height: 120px; padding: 7px; color: #e5f2e8; background: #26382ff2; border: 1px solid #547465; border-radius: 6px; font-size: 12px; }
+.terminal-notice span { flex: 1; overflow-y: auto; overflow-wrap: anywhere; max-height: 100px; }
+.terminal-notice button { flex-shrink: 0; min-width: 26px; min-height: 26px; }
+.terminal-dialog-backdrop { position: absolute; inset: 0; z-index: 20; display: grid; place-items: center; padding: 12px; background: #0008; }
+.terminal-dialog { display: flex; flex-direction: column; gap: 12px; width: min(100%, 420px); padding: 16px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); }
+.terminal-dialog h2 { font-size: 16px; }
+.terminal-dialog label { font-size: 12px; }
+.terminal-dialog .terminal-toolbar { justify-content: flex-end; }
