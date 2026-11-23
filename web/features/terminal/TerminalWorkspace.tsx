@@ -4,6 +4,7 @@ import { FitAddon } from '@xterm/addon-fit';
 import '@xterm/xterm/css/xterm.css';
 import { terminalBridge, terminalRequest } from './terminalClient';
 import RepositoryPane from './RepositoryPane';
+import QwenChat from './QwenChat';
 import { QWEN_COMMAND, QWEN_SESSION_KEY, qwenSession } from './qwenLauncher';
 
 interface ShellSession { id: string; cwd: string; exitCode: number | null; }
@@ -16,6 +17,7 @@ export default function TerminalWorkspace() {
   const [explorerOpen, setExplorerOpen] = useState(true);
   const [filesAvailable, setFilesAvailable] = useState(false);
   const [upgradeOpen, setUpgradeOpen] = useState(false);
+  const [chatOpen, setChatOpen] = useState(false);
   const terminal = useRef<Terminal | null>(null);
   const sessionId = useRef('');
   const inputQueue = useRef(Promise.resolve());
@@ -168,6 +170,7 @@ export default function TerminalWorkspace() {
         <span className={connected ? 'terminal-connected' : 'terminal-disconnected'} aria-hidden="true">●</span> เชื่อมต่อ
       </button>
       <button disabled={!connected || busy} onClick={openQwen} title="เปิด Qwen3-1.7B ใน session แยก · 127.0.0.1:8080">เปิด Qwen3</button>
+      <button onClick={() => setChatOpen(true)}>คุยกับ Qwen3</button>
       {connected && <><select aria-label="Session" value={selected} onChange={event => setSelected(event.target.value)}>
         <option value="">เลือก session</option>
         {sessions.map((session, index) => <option key={session.id} value={session.id}>{index + 1} · {window.localStorage?.getItem(QWEN_SESSION_KEY) === session.id ? 'Qwen3 · ' : ''}{session.cwd}</option>)}
@@ -223,6 +226,7 @@ export default function TerminalWorkspace() {
     </form>
       </section>
     </div>
+    <QwenChat open={chatOpen} onClose={() => setChatOpen(false)} />
     {upgradeOpen && <div className="terminal-dialog-backdrop">
       <section className="terminal-dialog" role="dialog" aria-modal="true" aria-labelledby="terminal-upgrade-title">
         <h2 id="terminal-upgrade-title">อัปเดตบริการ Termux</h2>

@@ -26,7 +26,7 @@ for (const menu of required) {
   if (!manual.includes(marker) || manual.split(marker)[1].split(/\n## /)[0].trim().length < 150) fail(`missing detailed section: ${menu}`);
 }
 // UI AND runtime changes invalidate the last explicit human/agent review.
-const inputs = [...walk('features'), ...walk('ui'), ...walk('core'), 'types.ts', 'index.css', 'App.tsx', 'android-app/app/src/main/java/com/w3personalsandbox/app/MainActivity.java', 'android-app/app/src/main/java/com/w3personalsandbox/app/TerminalTransport.java', '../tools/terminal/server.py', '../tools/terminal/bootstrap.py', 'android-app/app/src/main/AndroidManifest.xml', 'android-app/app/src/main/res/xml/network_security_config.xml'].sort();
+const inputs = [...walk('features'), ...walk('ui'), ...walk('core'), 'types.ts', 'index.css', 'App.tsx', 'android-app/app/src/main/java/com/w3personalsandbox/app/MainActivity.java', 'android-app/app/src/main/java/com/w3personalsandbox/app/TerminalTransport.java', 'android-app/app/src/main/java/com/w3personalsandbox/app/QwenClient.java', 'android-app/app/src/main/java/com/w3personalsandbox/app/QwenChatTransport.java', '../tools/terminal/server.py', '../tools/terminal/bootstrap.py', 'android-app/app/src/main/AndroidManifest.xml', 'android-app/app/src/main/res/xml/network_security_config.xml'].sort();
 const expected = {
   schema: 'w3.sandbox.manual-release.v1', versionCode: version, versionName,
   manualSha256: hash(manual), sourceSha256: hash(inputs.map(path => `${path}\0${hash(read(path))}`).join('\n')),

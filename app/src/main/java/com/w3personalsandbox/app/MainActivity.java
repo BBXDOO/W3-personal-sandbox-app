@@ -39,6 +39,7 @@ public class MainActivity extends Activity {
     private static final int SAVE_FILE = 1202;
     private WebView webView;
     private TerminalTransport terminalTransport;
+    private QwenChatTransport qwenChatTransport;
     private ValueCallback<Uri[]> fileCallback;
     private byte[] pendingExport;
     private boolean storyWriterOpen;
@@ -58,6 +59,7 @@ public class MainActivity extends Activity {
         webView.getSettings().setAllowContentAccess(true);
         webView.getSettings().setJavaScriptCanOpenWindowsAutomatically(false);
         terminalTransport = new TerminalTransport(this, webView);
+        qwenChatTransport = new QwenChatTransport(this, webView);
         webView.addJavascriptInterface(new ExportBridge(), "AndroidBridge");
         webView.setWebViewClient(new WebViewClient() {
             @Override public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
@@ -106,6 +108,8 @@ public class MainActivity extends Activity {
     }
 
     private class ExportBridge {
+        @JavascriptInterface public void qwenChat(String id, String body) { qwenChatTransport.send(id, body); }
+        @JavascriptInterface public void qwenCancel(String id) { qwenChatTransport.cancel(id); }
         @JavascriptInterface public String terminalStatus() { return terminalTransport.status(); }
         @JavascriptInterface public void prepareTerminal() { terminalTransport.prepare(); }
         @JavascriptInterface public void openTermux() { terminalTransport.openTermux(); }
@@ -321,6 +325,7 @@ public class MainActivity extends Activity {
     }
     @Override protected void onDestroy() {
         if (terminalTransport != null) terminalTransport.dispose();
+        if (qwenChatTransport != null) qwenChatTransport.dispose();
         if (fileCallback != null) fileCallback.onReceiveValue(null);
         webView.destroy();
         super.onDestroy();
