@@ -4,6 +4,7 @@ import { FitAddon } from '@xterm/addon-fit';
 import '@xterm/xterm/css/xterm.css';
 import { terminalBridge, terminalRequest } from './terminalClient';
 import RepositoryPane from './RepositoryPane';
+import { QWEN_COMMAND, QWEN_SESSION_KEY, qwenSession } from './qwenLauncher';
 
 interface ShellSession { id: string; cwd: string; exitCode: number | null; }
 interface Output { data: string; offset: number; truncated: boolean; exitCode: number | null; }
@@ -131,6 +132,22 @@ export default function TerminalWorkspace() {
     finally { setBusy(false); }
   };
 
+  const openQwen = async () => {
+    setBusy(true);
+    try {
+      const screen = terminal.current!;
+      const result = await qwenSession(window.localStorage.getItem(QWEN_SESSION_KEY), screen.cols, screen.rows);
+      // Remember before sending input, so a lost response cannot cause another
+      // launch in the same shell when the user taps again.
+      window.localStorage.setItem(QWEN_SESSION_KEY, result.session.id);
+      setSessions(result.sessions);
+      setSelected(result.session.id);
+      setMessage('');
+      if (result.started) await terminalRequest('POST', `/sessions/${result.session.id}/input`, { data: QWEN_COMMAND });
+    } catch (error) { report(error); }
+    finally { setBusy(false); }
+  };
+
   const closeSession = async () => {
     if (!selected || !window.confirm('ปิด session นี้และหยุดโปรเซสที่กำลังทำงาน?')) return;
     setBusy(true);
@@ -150,9 +167,10 @@ export default function TerminalWorkspace() {
         title={connected ? 'เชื่อมต่อแล้ว' : 'ยังไม่เชื่อมต่อ'}>
         <span className={connected ? 'terminal-connected' : 'terminal-disconnected'} aria-hidden="true">●</span> เชื่อมต่อ
       </button>
+      <button disabled={!connected || busy} onClick={openQwen} title="เปิด Qwen3-1.7B ใน session แยก · 127.0.0.1:8080">เปิด Qwen3</button>
       {connected && <><select aria-label="Session" value={selected} onChange={event => setSelected(event.target.value)}>
         <option value="">เลือก session</option>
-        {sessions.map((session, index) => <option key={session.id} value={session.id}>{index + 1} · {session.cwd}</option>)}
+        {sessions.map((session, index) => <option key={session.id} value={session.id}>{index + 1} · {window.localStorage?.getItem(QWEN_SESSION_KEY) === session.id ? 'Qwen3 · ' : ''}{session.cwd}</option>)}
       </select>
       <button disabled={!connected || busy} onClick={() => {
         setCwd(sessions.find(session => session.id === selected)?.cwd || '~');

@@ -1,4 +1,4 @@
-# W3 Personal Sandbox — v61 (0.61)
+# W3 Personal Sandbox — v62 (0.62)
 
 ฐานพัฒนา Personal Sandbox รวมซอร์ส React/TypeScript และ Android ไว้ในรีโป้นี้
 
@@ -56,3 +56,5 @@ v58 เพิ่มเมนู 🖥 Terminal ใต้ “รูปแบบ”
 รุ่น v61 จัด Terminal เป็นสามส่วน Explorer ทางซ้าย พื้นที่เปิดดูไฟล์ด้านบน และ shell ด้านล่าง พร้อมพับ Explorer และลากปรับความสูง shell ได้ Explorer อ่านไฟล์จริงใน Termux ผ่าน POST `/sessions/<id>/files` และ `/sessions/<id>/read` โดยใช้ token เดิมจาก native รองรับ UTF-8 ไม่เกิน 32 KiB และแบ่งรายชื่อ 100 รายการต่อหน้า ไม่มี endpoint เขียนไฟล์ การเลือกโฟลเดอร์ไม่เปลี่ยน cwd หรือ branch ของ shell
 
 Health ยังคง protocol 1 และเพิ่ม `capabilities: ["files-v1"]` เพื่อระบุ Explorer บริการเก่ายังใช้ shell ต่อได้และหน้าแอปแสดงปุ่มอัปเดตบริการก่อนใช้ Explorer Bootstrap จะไม่หยุด shell เก่าอัตโนมัติ ต้องหยุดบริการต้นทางใน Termux แล้ววางคำสั่งใหม่ รายละเอียดอยู่ในคู่มือ ทดสอบโครงหน้าจอด้วย `npm run test:terminal` และทดสอบ transport/ไฟล์จริงด้วยชุดทดสอบ Python ข้างต้น
+
+รุ่น v62 เพิ่มปุ่ม **เปิด Qwen3** ใน Terminal หลังเชื่อมต่อ ใช้ session แยกเพื่อรันสคริปต์ค้นหา Qwen3-1.7B-Q8_0.gguf ใน Hugging Face cache แล้วเริ่ม llama-server ที่ 127.0.0.1:8080 context 2048 กดซ้ำเปิด session ที่ยังทำงานอยู่ หรือเริ่มใหม่เมื่อโปรแกรมจบแล้ว ไม่ต้องเปลี่ยนบริการ Terminal เพิ่มเพื่อใช้ปุ่มนี้ ทดสอบ bash quoting/argument และการใช้ session เดิมด้วย `npm run test:terminal` การโหลดโมเดลจริงบน Android ยังต้องทดสอบบนเครื่องผู้ใช้
