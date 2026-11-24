@@ -57,6 +57,8 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.9'
+      - name: Test local Qwen chat transport
+        run: gradle --no-daemon :app:testDebugUnitTest
       - name: Build test APK
         if: github.event_name == 'pull_request' || (github.event_name == 'workflow_dispatch' && inputs.package_type == 'debug') || (github.event_name == 'push' && !startsWith(github.event.head_commit.message, 'Publish owner-signed v'))
         run: gradle --no-daemon :app:assembleDebug

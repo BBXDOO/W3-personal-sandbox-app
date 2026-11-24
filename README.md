@@ -1,4 +1,4 @@
-# W3 Personal Sandbox — v62 (0.62)
+# W3 Personal Sandbox — v63 (0.63)
 
 ฐานพัฒนา Personal Sandbox รวมซอร์ส React/TypeScript และ Android ไว้ในรีโป้นี้
 
@@ -58,3 +58,5 @@ v58 เพิ่มเมนู 🖥 Terminal ใต้ “รูปแบบ”
 Health ยังคง protocol 1 และเพิ่ม `capabilities: ["files-v1"]` เพื่อระบุ Explorer บริการเก่ายังใช้ shell ต่อได้และหน้าแอปแสดงปุ่มอัปเดตบริการก่อนใช้ Explorer Bootstrap จะไม่หยุด shell เก่าอัตโนมัติ ต้องหยุดบริการต้นทางใน Termux แล้ววางคำสั่งใหม่ รายละเอียดอยู่ในคู่มือ ทดสอบโครงหน้าจอด้วย `npm run test:terminal` และทดสอบ transport/ไฟล์จริงด้วยชุดทดสอบ Python ข้างต้น
 
 รุ่น v62 เพิ่มปุ่ม **เปิด Qwen3** ใน Terminal หลังเชื่อมต่อ ใช้ session แยกเพื่อรันสคริปต์ค้นหา Qwen3-1.7B-Q8_0.gguf ใน Hugging Face cache แล้วเริ่ม llama-server ที่ 127.0.0.1:8080 context 2048 กดซ้ำเปิด session ที่ยังทำงานอยู่ หรือเริ่มใหม่เมื่อโปรแกรมจบแล้ว ไม่ต้องเปลี่ยนบริการ Terminal เพิ่มเพื่อใช้ปุ่มนี้ ทดสอบ bash quoting/argument และการใช้ session เดิมด้วย `npm run test:terminal` การโหลดโมเดลจริงบน Android ยังต้องทดสอบบนเครื่องผู้ใช้
+
+รุ่น v63 เพิ่ม **คุยกับ Qwen3** สำหรับแชตภาษาไทยแบบ streaming กับ llama-server ที่พอร์ต 8080 โดยตรงผ่าน native bridge มีประวัติบนเครื่อง ปุ่มหยุด ลองใหม่ และเริ่มคุยใหม่ ใช้บริบทคู่สนทนาช่วงล่าสุด ปิด thinking ต่อคำขอ และวัด token ก่อนตัดบริบทให้พอดี context 2048 แชตไม่เรียกเครื่องมือหรืออ่าน/แก้รีโป้ ทดสอบ Java transport ผ่าน `gradle :app:testDebugUnitTest` โดยใช้เซิร์ฟเวอร์ HTTP จำลอง และทดสอบเว็บผ่าน `npm run test:terminal` ต้องทดสอบคุณภาพภาษาไทยกับโมเดลบนโทรศัพท์แยกต่างหาก

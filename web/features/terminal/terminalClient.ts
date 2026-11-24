@@ -1,4 +1,6 @@
 export interface TerminalBridge {
+  qwenChat?(id: string, body: string): void;
+  qwenCancel?(id: string): void;
   terminalStatus(): string;
   prepareTerminal(): void;
   openTermux(): void;
