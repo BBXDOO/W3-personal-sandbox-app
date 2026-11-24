@@ -7,7 +7,7 @@
   --bg: #242322; --surface: #1e1e1d; --surface-2: #141514;
   --text: #e7e5df; --text-dim: #a9a7a1; --border: #ffffff12;
   --accent: #ef5c35; --accent-ink: #fff5ed; --signal: #ce7c57; --success: #8ab39c;
-  --board-empty: #30293e; --image-overlay: #141514d9; --workspace-photo-shade: #11111170;
+  --board-empty: #30293e; --image-overlay: #141514d9; --workspace-photo-shade: #11111142;
   --shadow-raised: 0 5px 12px #0006, inset 0 1px #ffffff05;
   --shadow-inset: inset 0 2px 5px #0005;
   --shadow-pressed: inset 0 2px 7px #0007;
@@ -21,7 +21,7 @@
   --text-dim: #475569;
   --accent: #28755f;
   --image-overlay: rgba(235, 239, 235, 0.82);
-  --workspace-photo-shade: rgba(239, 245, 240, .5);
+  --workspace-photo-shade: rgba(239, 245, 240, .32);
   --shadow-raised: 
     -8px -8px 16px rgba(255,255,255,1),
     8px 8px 16px rgba(0,0,0,0.08);
@@ -478,7 +478,19 @@ input::placeholder, textarea::placeholder { color: var(--text-dim); opacity: .65
 .terminal-disconnected { color: var(--text-dim); }
 .terminal-screen-shell { position: relative; display: flex; flex: 1 1 0%; min-height: 0; }
 .terminal-screen { flex: 1 1 0%; min-width: 0; overflow: hidden; padding: 5px; border-radius: 8px; background: #111714; }
+.theme-light .terminal-screen { background: #f5f7f4; }
 .terminal-screen .xterm { height: 100%; }
+.terminal-workspace .terminal-command-input,
+.terminal-workspace .qwen-chat textarea,
+.terminal-workspace .qwen-chat-context input,
+.terminal-workspace .terminal-copy-dialog textarea {
+  color: var(--text);
+  background: var(--surface-2);
+  caret-color: var(--text);
+}
+.terminal-workspace .terminal-command-input::placeholder,
+.terminal-workspace .qwen-chat textarea::placeholder,
+.terminal-workspace .qwen-chat-context input::placeholder { color: var(--text-dim); opacity: 1; }
 .terminal-notice { position: absolute; top: 6px; left: 6px; right: 6px; z-index: 1; display: flex; align-items: flex-start; gap: 8px; max-height: 120px; padding: 7px; color: #e5f2e8; background: #26382ff2; border: 1px solid #547465; border-radius: 6px; font-size: 12px; }
 .terminal-notice span { flex: 1; overflow-y: auto; overflow-wrap: anywhere; max-height: 100px; }
 .terminal-notice button { flex-shrink: 0; min-width: 26px; min-height: 26px; }

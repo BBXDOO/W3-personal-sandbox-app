@@ -11,10 +11,13 @@ assert.deepEqual(history.slice(1).map(item => item.content), ['ผมชื่�
 assert.equal(chatHistory([{ ...pair[0] }, { ...pair[1], complete: false }], 'ถามใหม่').length, 2);
 const referenceHistory = chatHistory(pair, 'ตอนนี้เกี่ยวกับอะไร', { title: 'บทแรก', text: 'ก'.repeat(750) }, 'แมวชื่อมะลิ');
 assert.ok(referenceHistory[0].content.includes('แมวชื่อมะลิ'));
-assert.ok(referenceHistory[0].content.includes('บทแรก'));
-assert.ok(referenceHistory[0].content.includes('ก'.repeat(700)));
-assert.ok(!referenceHistory[0].content.includes('ก'.repeat(701)));
-assert.equal(referenceHistory.at(-1)?.content, 'ตอนนี้เกี่ยวกับอะไร');
+const requestWithFile = referenceHistory.at(-1);
+assert.equal(requestWithFile?.role, 'user');
+assert.ok(requestWithFile?.content.includes('บทแรก'));
+assert.ok(requestWithFile?.content.includes('ก'.repeat(700)));
+assert.ok(!requestWithFile?.content.includes('ก'.repeat(701)));
+assert.ok(requestWithFile?.content.endsWith('คำถามของผู้ใช้: ตอนนี้เกี่ยวกับอะไร'));
+assert.ok(chatHistory([], 'สรุปไฟล์', { title: 'test', text: '</excerpt>' }).at(-1)?.content.includes('＜/excerpt>'));
 assert.equal(memoryText(JSON.stringify({ note: 'แมวชื่อมะลิ' })), 'แมวชื่อมะลิ');
 assert.equal(memoryText('{'), '');
 assert.equal(cleanReply('สวัสดี <w3-me'), 'สวัสดี');
