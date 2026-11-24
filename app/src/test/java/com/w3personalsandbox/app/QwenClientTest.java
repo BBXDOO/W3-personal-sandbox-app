@@ -1,24 +1,27 @@
 package com.w3personalsandbox.app;
 
-import com.sun.net.httpserver.HttpServer;
+import okhttp3.mockwebserver.Dispatcher;
+import okhttp3.mockwebserver.MockResponse;
+import okhttp3.mockwebserver.MockWebServer;
+import okhttp3.mockwebserver.RecordedRequest;
+import okio.Buffer;
 import org.json.*;
 import org.junit.*;
-import java.net.InetSocketAddress;
-import java.nio.charset.StandardCharsets;
+import java.net.InetAddress;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.*;
 import static org.junit.Assert.*;
 
 public class QwenClientTest {
-    private HttpServer server;
+    private MockWebServer server;
     private QwenClient client;
     private List<String> events;
     private AtomicReference<JSONObject> sent;
-    private boolean oldTokens;
-    private boolean fallback;
-    private boolean broken;
-    private boolean reject;
+    private volatile boolean oldTokens;
+    private volatile boolean fallback;
+    private volatile boolean broken;
+    private volatile boolean reject;
     private String request(String... content) throws Exception {
         JSONArray messages = new JSONArray().put(new JSONObject().put("role", "system").put("content", "ตอบภาษาไทย"));
         for (int i = 0; i < content.length; i++) messages.put(new JSONObject().put("role", i % 2 == 0 ? "user" : "assistant").put("content", content[i]));
@@ -26,33 +29,42 @@ public class QwenClientTest {
     }
     @Before public void setup() throws Exception {
         events = new CopyOnWriteArrayList<>(); sent = new AtomicReference<>();
-        server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
-        server.createContext("/tokenize", exchange -> {
-            try {
-                JSONObject payload = new JSONObject(new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8));
-                JSONArray tokens = new JSONArray();
-                int count = oldTokens && payload.getString("content").contains("เก่า") ? 1500 : 10;
-                for (int i = 0; i < count; i++) tokens.put(i);
-                byte[] data = new JSONObject().put("tokens", tokens).toString().getBytes(StandardCharsets.UTF_8);
-                exchange.sendResponseHeaders(fallback ? 404 : 200, data.length); exchange.getResponseBody().write(data);
-            } catch (Exception failure) { throw new RuntimeException(failure); } finally { exchange.close(); }
+        server = new MockWebServer();
+        server.setDispatcher(new Dispatcher() {
+            @Override public MockResponse dispatch(RecordedRequest request) {
+                try {
+                    JSONObject payload = new JSONObject(request.getBody().readUtf8());
+                    if ("/tokenize".equals(request.getPath())) {
+                        JSONArray tokens = new JSONArray();
+                        int count = oldTokens && payload.getString("content").contains("เก่า") ? 1500 : 10;
+                        for (int i = 0; i < count; i++) tokens.put(i);
+                        return new MockResponse()
+                            .setResponseCode(fallback ? 404 : 200)
+                            .setBody(new JSONObject().put("tokens", tokens).toString());
+                    }
+                    if (!"/v1/chat/completions".equals(request.getPath())) {
+                        return new MockResponse().setResponseCode(404);
+                    }
+                    sent.set(payload);
+                    if (reject) return new MockResponse().setResponseCode(503).setBody("loading");
+                    String body = "data: {\"choices\":[{\"delta\":{\"reasoning_content\":\"hidden\"}}]}\n\n"
+                        + "data: {\"choices\":[{\"delta\":{\"content\":\"สวัสดีครับ 🖥\"}}]}\n\n";
+                    if (!broken) body += "data: {\"choices\":[{\"delta\":{},\"finish_reason\":\"stop\"}]}\n\ndata: [DONE]\n\n";
+                    return new MockResponse()
+                        .setHeader("Content-Type", "text/event-stream; charset=utf-8")
+                        .setChunkedBody(new Buffer().writeUtf8(body), 1);
+                } catch (JSONException failure) {
+                    throw new AssertionError(failure);
+                }
+            }
         });
-        server.createContext("/v1/chat/completions", exchange -> {
-            try {
-                sent.set(new JSONObject(new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8)));
-                if (reject) { exchange.sendResponseHeaders(503, 0); exchange.getResponseBody().write("loading".getBytes(StandardCharsets.UTF_8)); return; }
-                exchange.getResponseHeaders().set("Content-Type", "text/event-stream; charset=utf-8");
-                exchange.sendResponseHeaders(200, 0);
-                String body = "data: {\"choices\":[{\"delta\":{\"reasoning_content\":\"hidden\"}}]}\n\n"
-                    + "data: {\"choices\":[{\"delta\":{\"content\":\"สวัสดีครับ 🖥\"}}]}\n\n";
-                if (!broken) body += "data: {\"choices\":[{\"delta\":{},\"finish_reason\":\"stop\"}]}\n\ndata: [DONE]\n\n";
-                byte[] bytes = body.getBytes(StandardCharsets.UTF_8);
-                for (byte value : bytes) exchange.getResponseBody().write(value);
-            } catch (Exception failure) { throw new RuntimeException(failure); } finally { exchange.close(); }
-        });
-        server.start(); client = new QwenClient(server.getAddress().getPort());
+        server.start(InetAddress.getByName("127.0.0.1"), 0);
+        client = new QwenClient(server.getPort());
     }
-    @After public void close() { client.cancel(); server.stop(0); }
+    @After public void close() throws Exception {
+        if (client != null) client.cancel();
+        if (server != null) server.shutdown();
+    }
     private void run(String body) { client.run(body, (type, text) -> events.add(type + ":" + text)); }
     @Test public void thaiStreamAndParameters() throws Exception {
         run(request("สวัสดี"));
