@@ -19,10 +19,10 @@ export async function readTextDocument(file: File): Promise<TextDocument> {
   return { title, body, filename: file.name, bodyFormat: /\.(md|markdown)$/i.test(file.name) ? 'markdown' : 'legacy' };
 }
 
-export function exportTextDocument(title: string, body: string, extension: 'md' | 'txt'): 'picker' | 'download' {
+export function exportTextDocument(title: string, body: string, extension: 'md' | 'txt' | 'json'): 'picker' | 'download' {
   const stem = (title.trim() || 'story').replace(/[\\/:*?"<>|\u0000-\u001f]/g, '_').slice(0, 100);
   const name = `${stem}.${extension}`;
-  const mime = extension === 'md' ? 'text/markdown' : 'text/plain';
+  const mime = extension === 'md' ? 'text/markdown' : extension === 'json' ? 'application/json' : 'text/plain';
   const bridge = documentBridge();
   if (bridge?.saveText) { bridge.saveText(name, body, mime); return 'picker'; }
   const url = URL.createObjectURL(new Blob([body], { type: `${mime};charset=utf-8` }));

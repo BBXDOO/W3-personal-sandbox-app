@@ -540,3 +540,11 @@ input::placeholder, textarea::placeholder { color: var(--text-dim); opacity: .65
 .qwen-chat-compose textarea { flex: 1; min-width: 0; max-height: 120px; resize: vertical; padding: 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface-2); color: var(--text); font-family: inherit; font-size: 14px; line-height: 1.6; }
 .qwen-chat-compose button { min-width: 48px; border: 1px solid var(--border); border-radius: 8px; padding: 8px; background: var(--accent); color: var(--surface); }
 .qwen-chat-compose button:disabled { opacity: .45; }
+
+.qwen-chat-context { display: grid; gap: 6px; min-height: 0; overflow: auto; }
+.qwen-chat-context label { display: grid; gap: 3px; min-width: 0; }
+.qwen-chat-context small { overflow-wrap: anywhere; }
+.qwen-chat-context input[type=number] { width: 7em; }
+
+.terminal-shell-heading { display: flex; align-items: center; justify-content: space-between; }
+.terminal-copy-dialog textarea { width: 100%; min-height: 0; max-height: 45dvh; resize: vertical; font-family: monospace; user-select: text; }

@@ -5,18 +5,22 @@ import '@xterm/xterm/css/xterm.css';
 import { terminalBridge, terminalRequest } from './terminalClient';
 import RepositoryPane from './RepositoryPane';
 import QwenChat from './QwenChat';
+import type { StoryPack } from '../../types';
+import type { ChatSource } from './qwenChatClient';
 import { QWEN_COMMAND, QWEN_SESSION_KEY, qwenSession } from './qwenLauncher';
 
 interface ShellSession { id: string; cwd: string; exitCode: number | null; }
 interface Output { data: string; offset: number; truncated: boolean; exitCode: number | null; }
 
-export default function TerminalWorkspace() {
+export default function TerminalWorkspace({ story }: { story?: StoryPack } = {}) {
   const host = useRef<HTMLDivElement>(null);
   const panes = useRef<HTMLDivElement>(null);
   const [shellPercent, setShellPercent] = useState(45);
   const [explorerOpen, setExplorerOpen] = useState(true);
   const [filesAvailable, setFilesAvailable] = useState(false);
   const [upgradeOpen, setUpgradeOpen] = useState(false);
+  const [explorerFolder, setExplorerFolder] = useState<{ session: string; root: string } | null>(null);
+  const [fileContext, setFileContext] = useState<ChatSource | null>(null);
   const [chatOpen, setChatOpen] = useState(false);
   const terminal = useRef<Terminal | null>(null);
   const sessionId = useRef('');
@@ -28,6 +32,8 @@ export default function TerminalWorkspace() {
   const [message, setMessage] = useState('');
   const [cwd, setCwd] = useState('');
   const [command, setCommand] = useState('');
+  const [copyText, setCopyText] = useState<string | null>(null);
+  const copyField = useRef<HTMLTextAreaElement>(null);
   const [automatic, setAutomatic] = useState(true);
   const [sessionFormOpen, setSessionFormOpen] = useState(false);
   const bridge = terminalBridge();
@@ -59,6 +65,38 @@ export default function TerminalWorkspace() {
     resize();
     return () => { observer.disconnect(); data.dispose(); screen.dispose(); terminal.current = null; };
   }, []);
+
+  const openCopy = () => {
+    const screen = terminal.current;
+    if (!screen) return;
+    const selectedText = screen.getSelection();
+    if (selectedText) { setCopyText(selectedText); return; }
+    const buffer = screen.buffer.active;
+    const lines: string[] = [];
+    for (let index = 0; index < buffer.length; index++) {
+      const line = buffer.getLine(index);
+      if (!line) continue;
+      const text = line.translateToString(!buffer.getLine(index + 1)?.isWrapped);
+      if (line.isWrapped && lines.length) lines[lines.length - 1] += text;
+      else lines.push(text);
+    }
+    setCopyText(lines.join('\n').trimEnd());
+  };
+
+  const copyOutput = async () => {
+    const field = copyField.current;
+    if (!field) return;
+    const selection = field.value.slice(field.selectionStart, field.selectionEnd);
+    const text = selection || field.value;
+    if (!text) return;
+    try {
+      if (bridge?.copyTerminalText) bridge.copyTerminalText(text);
+      else await navigator.clipboard.writeText(text);
+    } catch {
+      field.focus();
+      if (!selection) field.select();
+    }
+  };
 
   const connect = async () => {
     setBusy(true);
@@ -189,7 +227,9 @@ export default function TerminalWorkspace() {
     </div>
     <div ref={panes} className="terminal-three-panes" style={{ gridTemplateRows: `minmax(0, ${100 - shellPercent}fr) 10px minmax(0, ${shellPercent}fr)` }}>
       <RepositoryPane key={`${selected}-${connected}`} session={selected}
-        initialRoot={sessions.find(session => session.id === selected)?.cwd || '~'} available={filesAvailable}
+        initialRoot={explorerFolder?.session === selected ? explorerFolder.root : sessions.find(session => session.id === selected)?.cwd || '~'} available={filesAvailable}
+        onRootChange={root => setExplorerFolder({ session: selected, root })}
+        onChatFile={file => { setFileContext(file); setChatOpen(true); }}
         connected={connected} explorerOpen={explorerOpen} onToggle={() => setExplorerOpen(current => !current)} onUpgrade={() => setUpgradeOpen(true)} />
       <div className="terminal-pane-divider" role="separator" aria-label="ปรับความสูง shell" aria-orientation="horizontal"
         aria-valuemin={25} aria-valuemax={75} aria-valuenow={shellPercent} tabIndex={0}
@@ -207,7 +247,9 @@ export default function TerminalWorkspace() {
         }}
         onPointerUp={event => event.currentTarget.releasePointerCapture(event.pointerId)} />
       <section className="terminal-shell-pane" aria-label="Command shell ด้านล่าง">
-      <div className="terminal-shell-heading">TERMINAL</div>
+      <div className="terminal-shell-heading">TERMINAL
+        <button type="button" onClick={openCopy} disabled={!selected}>คัดลอกข้อความ</button>
+      </div>
     <div className="terminal-screen-shell">
       <div ref={host} className="terminal-screen" aria-label="หน้าจอ shell" />
       {message && <div className="terminal-notice" role="status">
@@ -226,7 +268,23 @@ export default function TerminalWorkspace() {
     </form>
       </section>
     </div>
-    <QwenChat open={chatOpen} onClose={() => setChatOpen(false)} />
+    {copyText !== null && <div className="terminal-dialog-backdrop">
+      <section className="terminal-dialog terminal-copy-dialog" role="dialog" aria-modal="true" aria-labelledby="terminal-copy-title"
+        onKeyDown={event => { if (event.key === 'Escape') setCopyText(null); }}>
+        <h2 id="terminal-copy-title">ข้อความจาก Terminal</h2>
+        <textarea aria-label="ผลลัพธ์ Terminal" ref={copyField} value={copyText} readOnly rows={12} />
+        <div className="terminal-toolbar">
+          <button type="button" disabled={!copyText} onClick={() => void copyOutput()}>คัดลอก</button>
+          <button type="button" onClick={() => setCopyText(null)}>ปิด</button>
+        </div>
+      </section>
+    </div>}
+    <QwenChat story={story} fileContext={fileContext}
+      repository={connected && filesAvailable && selected ? {
+        session: selected,
+        root: explorerFolder?.session === selected ? explorerFolder.root : sessions.find(session => session.id === selected)?.cwd || '~',
+      } : undefined}
+      onReadFile={setFileContext} onRemoveFile={() => setFileContext(null)} open={chatOpen} onClose={() => setChatOpen(false)} />
     {upgradeOpen && <div className="terminal-dialog-backdrop">
       <section className="terminal-dialog" role="dialog" aria-modal="true" aria-labelledby="terminal-upgrade-title">
         <h2 id="terminal-upgrade-title">อัปเดตบริการ Termux</h2>
