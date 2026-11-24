@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import type { ChatSource } from './qwenChatClient';
 import { terminalRequest } from './terminalClient';
 
 interface Entry { name: string; kind: 'folder' | 'file'; readable: boolean; }
@@ -48,9 +49,9 @@ function Folder({ session, root, path, active, refresh, onFile }: FolderProps) {
   </ul>;
 }
 
-export default function RepositoryPane({ session, initialRoot, available, connected, explorerOpen, onToggle, onUpgrade }: {
+export default function RepositoryPane({ session, initialRoot, available, connected, explorerOpen, onToggle, onUpgrade, onChatFile, onRootChange }: {
   session: string; initialRoot: string; available: boolean; connected: boolean;
-  explorerOpen: boolean; onToggle(): void; onUpgrade(): void;
+  explorerOpen: boolean; onToggle(): void; onUpgrade(): void; onChatFile(file: ChatSource): void; onRootChange?(root: string): void;
 }) {
   const [root, setRoot] = useState(initialRoot);
   const [draftRoot, setDraftRoot] = useState(initialRoot);
@@ -82,6 +83,7 @@ export default function RepositoryPane({ session, initialRoot, available, connec
       const result = await terminalRequest<Listing>('POST', `/sessions/${session}/files`, { root: draftRoot.trim() || '~' });
       generation.current++;
       setRoot(result.root);
+      onRootChange?.(result.root);
       setDocument(null);
       setActive('');
       setError('');
@@ -119,7 +121,7 @@ export default function RepositoryPane({ session, initialRoot, available, connec
             <span className="repository-code-line" key={index}><span className="repository-line-number" aria-hidden="true">{index + 1}</span><span>{line || '\u200b'}</span>{'\n'}</span>)}</code></pre>
           : <p className="repository-hint">เลือกไฟล์จาก Explorer เพื่อเปิดดู</p>}
       </div>
-      {document && <footer className="repository-file-status">UTF-8 · {document.size.toLocaleString()} bytes</footer>}
+      {document && <footer className="repository-file-status">UTF-8 · {document.size.toLocaleString()} bytes <button type="button" onClick={() => onChatFile({ title: document.path, text: document.content.slice(0, 700) })}>ใช้ในแชต Qwen3</button></footer>}
     </section>
     {folderDialog && <div className="terminal-dialog-backdrop">
       <form className="terminal-dialog" role="dialog" aria-modal="true" aria-labelledby="repository-folder-title"

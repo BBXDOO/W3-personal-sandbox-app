@@ -113,6 +113,17 @@ public class MainActivity extends Activity {
         @JavascriptInterface public String terminalStatus() { return terminalTransport.status(); }
         @JavascriptInterface public void prepareTerminal() { terminalTransport.prepare(); }
         @JavascriptInterface public void openTermux() { terminalTransport.openTermux(); }
+        @JavascriptInterface public void copyTerminalText(String text) {
+            runOnUiThread(() -> {
+                try {
+                    android.content.ClipboardManager clipboard = getSystemService(android.content.ClipboardManager.class);
+                    clipboard.setPrimaryClip(android.content.ClipData.newPlainText("Terminal", text));
+                    Toast.makeText(MainActivity.this, "คัดลอกข้อความ Terminal แล้ว", Toast.LENGTH_SHORT).show();
+                } catch (RuntimeException failure) {
+                    Toast.makeText(MainActivity.this, "คัดลอกไม่สำเร็จ ลองเลือกข้อความช่วงสั้นลง", Toast.LENGTH_SHORT).show();
+                }
+            });
+        }
         @JavascriptInterface public void copyTerminalSetup() { terminalTransport.copySetupAndOpenTermux(); }
         @JavascriptInterface public void terminalRequest(String id, String method, String path, String body) {
             terminalTransport.request(id, method, path, body);
@@ -122,7 +133,7 @@ public class MainActivity extends Activity {
             saveDocument(name, contents, "application/json");
         }
         @JavascriptInterface public void saveText(String name, String contents, String mime) {
-            if (!"text/markdown".equals(mime) && !"text/plain".equals(mime)) return;
+            if (!"text/markdown".equals(mime) && !"text/plain".equals(mime) && !"application/json".equals(mime)) return;
             saveDocument(name, contents, mime);
         }
         @JavascriptInterface public void setWriterOpen(boolean open) {
