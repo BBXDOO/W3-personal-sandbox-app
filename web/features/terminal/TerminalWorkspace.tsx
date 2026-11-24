@@ -9,10 +9,13 @@ import type { StoryPack } from '../../types';
 import type { ChatSource } from './qwenChatClient';
 import { QWEN_COMMAND, QWEN_SESSION_KEY, qwenSession } from './qwenLauncher';
 
+const darkTerminal = { background: '#111714', foreground: '#e5f2e8', cursor: '#82d5b2', cursorAccent: '#111714' };
+const lightTerminal = { background: '#f5f7f4', foreground: '#14241d', cursor: '#14533f', cursorAccent: '#f5f7f4' };
+
 interface ShellSession { id: string; cwd: string; exitCode: number | null; }
 interface Output { data: string; offset: number; truncated: boolean; exitCode: number | null; }
 
-export default function TerminalWorkspace({ story }: { story?: StoryPack } = {}) {
+export default function TerminalWorkspace({ story, onStoryChange }: { story?: StoryPack; onStoryChange?(story: StoryPack): void } = {}) {
   const host = useRef<HTMLDivElement>(null);
   const panes = useRef<HTMLDivElement>(null);
   const [shellPercent, setShellPercent] = useState(45);
@@ -49,7 +52,7 @@ export default function TerminalWorkspace({ story }: { story?: StoryPack } = {})
 
   useEffect(() => {
     const screen = new Terminal({ cursorBlink: true, fontSize: 13, fontFamily: 'monospace', scrollback: 5000,
-      theme: { background: '#111714', foreground: '#e5f2e8', cursor: '#82d5b2' } });
+      theme: darkTerminal, minimumContrastRatio: 4.5 });
     const fit = new FitAddon();
     screen.loadAddon(fit);
     screen.open(host.current!);
@@ -65,6 +68,11 @@ export default function TerminalWorkspace({ story }: { story?: StoryPack } = {})
     resize();
     return () => { observer.disconnect(); data.dispose(); screen.dispose(); terminal.current = null; };
   }, []);
+
+  const light = story?.uiTheme === 'softLight';
+  useEffect(() => {
+    if (terminal.current) terminal.current.options.theme = light ? lightTerminal : darkTerminal;
+  }, [light]);
 
   const openCopy = () => {
     const screen = terminal.current;
@@ -263,7 +271,7 @@ export default function TerminalWorkspace({ story }: { story?: StoryPack } = {})
         <button key={label} disabled={!selected || !connected} onClick={() => send(data)}>{label}</button>)}
     </div>
     <form className="terminal-toolbar" onSubmit={event => { event.preventDefault(); if (command.trim()) { send(command + '\r'); setCommand(''); } }}>
-      <input aria-label="คำสั่ง Terminal" placeholder="คำสั่ง" value={command} onChange={event => setCommand(event.target.value)} autoCapitalize="none" autoCorrect="off" spellCheck={false} disabled={!selected || !connected} />
+      <input className="terminal-command-input" aria-label="คำสั่ง Terminal" placeholder="คำสั่ง" value={command} onChange={event => setCommand(event.target.value)} autoCapitalize="none" autoCorrect="off" spellCheck={false} disabled={!selected || !connected} />
       <button disabled={!selected || !connected || !command.trim()}>รัน ↵</button>
     </form>
       </section>
@@ -279,7 +287,7 @@ export default function TerminalWorkspace({ story }: { story?: StoryPack } = {})
         </div>
       </section>
     </div>}
-    <QwenChat story={story} fileContext={fileContext}
+    <QwenChat story={story} onStoryChange={onStoryChange} fileContext={fileContext}
       repository={connected && filesAvailable && selected ? {
         session: selected,
         root: explorerFolder?.session === selected ? explorerFolder.root : sessions.find(session => session.id === selected)?.cwd || '~',

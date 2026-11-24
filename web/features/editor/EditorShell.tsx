@@ -248,7 +248,7 @@ export const EditorShell: React.FC<EditorShellProps> = ({ story: initialStory, o
     const commonProps = { story, onChange: updateStory, toolActions };
 
     switch (activeTab) {
-      case 'terminal': return <Suspense fallback={<p role="status">กำลังเปิด Terminal…</p>}><TerminalWorkspace key={story.storyId} story={story} /></Suspense>;
+      case 'terminal': return <Suspense fallback={<p role="status">กำลังเปิด Terminal…</p>}><TerminalWorkspace key={story.storyId} story={story} onStoryChange={updateStory} /></Suspense>;
       case 'home': return <DashboardTab {...commonProps} />;
       case 'story': return <StoryTab {...commonProps} navigationTarget={navigationTarget} onCommit={handleSave} onCommitChange={commitStoryChange} saveState={saveError ? 'error' : isDirty ? 'pending' : 'saved'} />;
       case 'character': return <CharactersTab {...commonProps} />;

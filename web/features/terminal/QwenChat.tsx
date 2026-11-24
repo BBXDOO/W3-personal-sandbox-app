@@ -1,11 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { CHAT_KEY, ChatMessage, ChatSource, chatHistory, cleanReply, memoryText, proposedMemory, restoreChat, streamChat } from './qwenChatClient';
+import { generateId } from '../../core/utils';
 import type { StoryPack } from '../../types';
 import { exportTextDocument } from '../../core/documentFiles';
 import { terminalBridge, terminalRequest } from './terminalClient';
 
-export default function QwenChat({ open, onClose, story, fileContext, onRemoveFile, repository, onReadFile }: {
-  open: boolean; onClose(): void; story?: StoryPack;
+export default function QwenChat({ open, onClose, story, onStoryChange, fileContext, onRemoveFile, repository, onReadFile }: {
+  open: boolean; onClose(): void; story?: StoryPack; onStoryChange?(story: StoryPack): void;
   fileContext?: ChatSource | null; onRemoveFile?(): void;
   repository?: { session: string; root: string };
   onReadFile?(source: ChatSource): void;
@@ -15,6 +16,32 @@ export default function QwenChat({ open, onClose, story, fileContext, onRemoveFi
   const [memory, setMemory] = useState(() => {
     try { return memoryText(window.localStorage.getItem(memoryKey)); } catch { return ''; }
   });
+  const [mode, setMode] = useState<'chat' | 'rules' | 'resize'>('chat');
+  const [boardId, setBoardId] = useState('');
+  const [proposal, setProposal] = useState<
+    { type: 'rules'; body: string } | { type: 'resize'; boardId: string; width: number; height: number } | null
+  >(null);
+  const board = story?.boards.find(item => item.boardId === boardId);
+  const applyProposal = () => {
+    if (!story || !onStoryChange || !proposal) return;
+    if (proposal.type === 'rules') {
+      const content = proposal.body.trim();
+      if (!content) return;
+      const rule = {
+        id: generateId('rule'), name: 'กฎบอร์ดจาก Qwen3',
+        blocks: [{ title: 'กติกา', content }], modifiers: [],
+      };
+      onStoryChange({ ...story, rulesets: [...(story.rulesets || []), rule] });
+      setNotice('เพิ่มชุดกฎในเมนูกฎแล้ว');
+    } else {
+      if (!story.boards.some(item => item.boardId === proposal.boardId)) return;
+      onStoryChange({ ...story, boards: story.boards.map(item => item.boardId === proposal.boardId
+        ? { ...item, width: proposal.width, height: proposal.height }
+        : item) });
+      setNotice('ปรับขนาดบอร์ดแล้ว');
+    }
+    setProposal(null);
+  };
   const [contextOpen, setContextOpen] = useState(false);
   const [projectSource, setProjectSource] = useState('');
   const [repoPath, setRepoPath] = useState('');
@@ -82,7 +109,12 @@ export default function QwenChat({ open, onClose, story, fileContext, onRemoveFi
   }, [messages, open, busy, error]);
 
   const send = (text: string, base = messages) => {
-    if (busy || !text.trim()) return;
+    if (busy || !text.trim() || proposal || (mode === 'resize' && !board)) return;
+    const task = mode === 'rules'
+      ? 'ร่างชุดกติกาบอร์ดตามโจทย์ เขียนกติกาที่นำไปเล่นได้เลย ระบุวิธีเล่นและผลของกฎ'
+      : mode === 'resize' && board
+        ? `บอร์ดที่เลือกมีขนาด ${board.width}x${board.height} เสนอความกว้างและความสูงตามโจทย์ ช่วง 1–50 ช่อง ตอบเป็น WIDTHxHEIGHT เพียงบรรทัดเดียว ถ้าโจทย์ไม่ชัดให้ถามกลับ`
+        : '';
     const assistantId = crypto.randomUUID();
     const pair: ChatMessage[] = [{ id: crypto.randomUUID(), role: 'user', content: text.trim(), complete: true }, { id: assistantId, role: 'assistant', content: '', complete: false }];
     setMessages([...base, ...pair]);
@@ -90,7 +122,7 @@ export default function QwenChat({ open, onClose, story, fileContext, onRemoveFi
     let raw = '';
     const fail = (message: string) => { setBusy(false); setError(message); setRetry({ text, base }); cancel.current = null; };
     try {
-      cancel.current = streamChat(chatHistory(base, text.trim(), source, memory), (type, value) => {
+      cancel.current = streamChat(chatHistory(base, text.trim(), source, memory, task), (type, value) => {
         if (type === 'delta') {
           raw += value;
           setMessages(current => current.map(item => item.id === assistantId ? { ...item, content: cleanReply(raw) } : item));
@@ -98,6 +130,15 @@ export default function QwenChat({ open, onClose, story, fileContext, onRemoveFi
           cancel.current = null;
           if (!cleanReply(raw)) { fail('Qwen3 ยังไม่ได้ส่งคำตอบ กรุณาลองอีกครั้ง'); return; }
           setMessages(current => current.map(item => item.id === assistantId ? { ...item, content: cleanReply(raw), complete: true } : item));
+          const answer = cleanReply(raw);
+          if (mode === 'rules') setProposal({ type: 'rules', body: answer });
+          if (mode === 'resize' && board) {
+            const size = answer.match(/^(\d{1,2})\s*[x×]\s*(\d{1,2})$/i);
+            const width = Number(size?.[1]), height = Number(size?.[2]);
+            if (width >= 1 && width <= 50 && height >= 1 && height <= 50) {
+              setProposal({ type: 'resize', boardId: board.boardId, width, height });
+            }
+          }
           const note = proposedMemory(raw);
           if (note && note !== memory) saveMemory(note);
           setBusy(false);
@@ -117,6 +158,7 @@ export default function QwenChat({ open, onClose, story, fileContext, onRemoveFi
         }, null, 2), 'json');
       }}>ส่งออกแชต</button>
       <button type="button" disabled={busy || (!messages.length && !draft && !source)} onClick={() => {
+        setProposal(null); setMode('chat'); setBoardId('');
         setMessages([]); setDraft(''); setError(''); setNotice(''); setRetry(null);
         readGeneration.current++; setReadingFile(false); setRepoPath(''); setStartLine(1);
         setProjectSource(''); setContextOpen(false); onRemoveFile?.();
@@ -163,13 +205,39 @@ export default function QwenChat({ open, onClose, story, fileContext, onRemoveFi
         <button type="button" disabled={!memory} onClick={() => exportTextDocument('qwen-memory', serializeMemory(memory), 'json')}>ส่งออก JSON</button>
       </div>
     </div>}
+    {story && onStoryChange && <div className="terminal-toolbar">
+      <select aria-label="งานที่ให้ Qwen3 ช่วย" value={mode} disabled={busy || !!proposal} onChange={event => {
+        const next = event.target.value;
+        if (next === 'chat' || next === 'rules' || next === 'resize') setMode(next);
+      }}>
+        <option value="chat">คุยและปรึกษา</option>
+        <option value="rules">ร่างกฎบอร์ด</option>
+        <option value="resize">เสนอขนาดบอร์ด</option>
+      </select>
+      {mode === 'resize' && <select aria-label="บอร์ดที่จะแก้" value={boardId} disabled={busy || !!proposal} onChange={event => setBoardId(event.target.value)}>
+        <option value="">เลือกบอร์ด</option>
+        {story.boards.map(item => <option key={item.boardId} value={item.boardId}>{item.title}</option>)}
+      </select>}
+    </div>}
+    {proposal && <div className="qwen-chat-context">
+      {proposal.type === 'rules'
+        ? <textarea aria-label="ร่างกฎที่ตรวจแก้ได้" value={proposal.body} rows={3}
+            onChange={event => setProposal({ type: 'rules', body: event.target.value })} />
+        : <div>ขนาดใหม่สำหรับ {board?.title} คือ {proposal.width} × {proposal.height}</div>}
+      <div className="terminal-toolbar">
+        <button type="button" disabled={proposal.type === 'rules' && !proposal.body.trim()} onClick={applyProposal}>
+          {proposal.type === 'rules' ? 'เพิ่มชุดกฎ' : 'ใช้ขนาดนี้'}
+        </button>
+        <button type="button" onClick={() => setProposal(null)}>ยกเลิก</button>
+      </div>
+    </div>}
     <div className="qwen-chat-status" role="status">{busy ? 'กำลังตอบ…' : error || notice || 'ตอบภาษาไทย · ใช้บริบทช่วงล่าสุด'}</div>
     {error && retry && <div className="terminal-toolbar"><button onClick={() => send(retry.text, retry.base)}>ลองอีกครั้ง</button></div>}
     <form className="qwen-chat-compose" onSubmit={event => { event.preventDefault(); send(draft); }}>
       <textarea aria-label="ข้อความถึง Qwen3" placeholder="พิมพ์ข้อความภาษาไทย…" value={draft} onChange={event => setDraft(event.target.value)}
         maxLength={3000} rows={2} autoCorrect="off" />
       {busy ? <button type="button" onClick={stop}>หยุดตอบ</button>
-        : <button disabled={!draft.trim() || !terminalBridge()?.qwenChat}>ส่ง</button>}
+        : <button disabled={!draft.trim() || !terminalBridge()?.qwenChat || !!proposal || (mode === 'resize' && !board)}>ส่ง</button>}
     </form>
   </section>;
 }
