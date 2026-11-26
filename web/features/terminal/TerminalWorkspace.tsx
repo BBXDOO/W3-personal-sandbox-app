@@ -254,6 +254,7 @@ export default function TerminalWorkspace({ story, onStoryChange }: { story?: St
       <button disabled={!connected || busy} onClick={() => void openProgram(QWEN_SESSION_KEY, QWEN_COMMAND)} title="เปิด Qwen3-1.7B ใน session แยก · 127.0.0.1:8080">เปิด Qwen3</button>
       <button onClick={() => setChatOpen(true)}>คุยกับ Qwen3</button>
       <button type="button" disabled={!connected || busy} onClick={() => void openProgram(OPENCODE_SESSION_KEY, OPENCODE_COMMAND)}>opencode</button>
+      <button type="button" disabled={!bridge?.openOpenCodeChat} onClick={() => bridge?.openOpenCodeChat?.()}>คุยกับ OpenCode</button>
       {connected && <><select aria-label="Session" value={selected} onChange={event => setSelected(event.target.value)}>
         <option value="">เลือก session</option>
         {sessions.map((session, index) => <option key={session.id} value={session.id}>{index + 1} · {window.localStorage?.getItem(QWEN_SESSION_KEY) === session.id ? 'Qwen3 · ' : window.localStorage?.getItem(OPENCODE_SESSION_KEY) === session.id ? 'opencode · ' : ''}{session.cwd}</option>)}

@@ -4,6 +4,7 @@ export interface TerminalBridge {
   terminalStatus(): string;
   prepareTerminal(): void;
   openTermux(): void;
+  openOpenCodeChat?(): void;
   copyTerminalSetup(): void;
   copyTerminalText?(text: string): void;
   terminalRequest(id: string, method: string, path: string, body: string): void;
