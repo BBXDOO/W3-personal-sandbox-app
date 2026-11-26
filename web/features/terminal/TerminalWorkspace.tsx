@@ -34,13 +34,26 @@ export default function TerminalWorkspace({ story, onStoryChange }: { story?: St
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
   const [cwd, setCwd] = useState('');
+  const commandInput = useRef<HTMLInputElement>(null);
   const [command, setCommand] = useState('');
   const [copyText, setCopyText] = useState<string | null>(null);
   const copyField = useRef<HTMLTextAreaElement>(null);
   const [automatic, setAutomatic] = useState(true);
   const [sessionFormOpen, setSessionFormOpen] = useState(false);
   const bridge = terminalBridge();
-  const report = (error: unknown) => setMessage(error instanceof Error ? error.message : String(error));
+  const report = (error: unknown) => {
+    const detail = error instanceof Error ? error.message : String(error);
+    const bridgeUnavailable = /(?:failed to connect|connection refused).*127\.0\.0\.1:8766/i.test(detail);
+    if (bridgeUnavailable) setConnected(false);
+    setMessage(bridgeUnavailable ? 'ตัวเชื่อม Termux หยุดตอบ กรุณาเปิดบริการอีกครั้ง แล้วกดเชื่อมต่อ' : detail);
+  };
+
+  const prepareTerminal = () => {
+    if (automatic) {
+      setMessage('กำลังเตรียม session…');
+      bridge?.prepareTerminal();
+    } else bridge?.copyTerminalSetup();
+  };
 
   const send = (data: string) => {
     const id = sessionId.current;
@@ -148,20 +161,27 @@ export default function TerminalWorkspace({ story, onStoryChange }: { story?: St
     const screen = terminal.current!;
     terminalRequest('POST', `/sessions/${selected}/resize`, { cols: Math.max(2, screen.cols), rows: Math.max(2, screen.rows) }).catch(report);
     const poll = async () => {
+      let result: Output;
       try {
-        const result = await terminalRequest<Output>('GET', `/sessions/${selected}/output?offset=${offset}`);
-        if (cancelled) return;
-        if (result.truncated) screen.writeln('\r\n[แสดงประวัติที่ยังอยู่ในหน่วยความจำ]\r\n');
-        screen.write(Uint8Array.from(atob(result.data), character => character.charCodeAt(0)));
-        offset = result.offset;
-        if (result.exitCode !== null && !result.data) {
-          setMessage(`Shell จบการทำงาน · exit code ${result.exitCode}`);
-          return;
-        }
-        timer = window.setTimeout(poll, result.data ? 50 : 400);
+        result = await terminalRequest<Output>('GET', `/sessions/${selected}/output?offset=${offset}`);
       } catch (error) {
         if (!cancelled) { setConnected(false); report(error); }
+        return;
       }
+      if (cancelled) return;
+      offset = result.offset;
+      try {
+        if (result.truncated) screen.writeln('\r\n[แสดงประวัติที่ยังอยู่ในหน่วยความจำ]\r\n');
+        if (result.data) screen.write(Uint8Array.from(atob(result.data), character => character.charCodeAt(0)));
+      } catch (error) {
+        console.error('Terminal output rendering failed', error);
+        setMessage('แสดงผล Terminal บางช่วงไม่ได้ แต่ยังเชื่อมกับ Termux อยู่');
+      }
+      if (result.exitCode !== null && !result.data) {
+        setMessage(`Shell จบการทำงาน · exit code ${result.exitCode}`);
+        return;
+      }
+      timer = window.setTimeout(poll, result.data ? 50 : 400);
     };
     void poll();
     return () => { cancelled = true; clearTimeout(timer); sessionId.current = ''; };
@@ -212,6 +232,19 @@ export default function TerminalWorkspace({ story, onStoryChange }: { story?: St
     finally { setBusy(false); }
   };
 
+  const openCodeSelected = !!selected && window.localStorage?.getItem(OPENCODE_SESSION_KEY) === selected;
+  const submitCommand = () => {
+    if (!connected || !selected) return;
+    if (openCodeSelected) {
+      if (command.trim()) send(command);
+      send('\r');
+    } else {
+      if (!command.trim()) return;
+      send(command + '\r');
+    }
+    setCommand('');
+  };
+
   return <section className="terminal-workspace" aria-label="Terminal W3">
     <div className="terminal-toolbar terminal-actions" aria-label="เครื่องมือ Terminal">
       <button disabled={!bridge?.terminalRequest || busy} onClick={connect}
@@ -231,10 +264,7 @@ export default function TerminalWorkspace({ story, onStoryChange }: { story?: St
       }}>＋ Session</button>
       <button disabled={!selected || busy} onClick={closeSession}>ปิด session</button></>}
       <button onClick={() => bridge?.openTermux ? bridge.openTermux() : setMessage('ปุ่มเปิด Termux ใช้งานในแอป Android')}>เปิด Termux</button>
-      <button disabled={!bridge?.prepareTerminal || busy} onClick={() => {
-        if (automatic) { setMessage('กำลังเตรียม session…'); bridge?.prepareTerminal(); }
-        else bridge?.copyTerminalSetup();
-      }}>{automatic ? 'เตรียม session' : 'คัดลอกและเปิด Termux'}</button>
+      <button disabled={!bridge?.prepareTerminal || busy} onClick={prepareTerminal}>{automatic ? 'เตรียม session' : 'คัดลอกและเปิด Termux'}</button>
       {automatic && bridge?.copyTerminalSetup && <button onClick={() => bridge.copyTerminalSetup()}>คัดลอกคำสั่ง</button>}
     </div>
     <div ref={panes} className="terminal-three-panes" style={{ gridTemplateRows: `minmax(0, ${100 - shellPercent}fr) 10px minmax(0, ${shellPercent}fr)` }}>
@@ -265,18 +295,27 @@ export default function TerminalWorkspace({ story, onStoryChange }: { story?: St
     <div className="terminal-screen-shell">
       <div ref={host} className="terminal-screen" aria-label="หน้าจอ shell" />
       {message && <div className="terminal-notice" role="status">
-        <span>{message}</span>
+        <span>{message}
+          {!connected && bridge?.prepareTerminal && <>
+            <br /><button type="button" disabled={busy} onClick={prepareTerminal}>
+              {automatic ? 'เตรียม session' : 'คัดลอกและเปิด Termux'}
+            </button>
+          </>}
+        </span>
         <button type="button" aria-label="ปิดข้อความสถานะ" onClick={() => setMessage('')}>×</button>
       </div>}
     </div>
     <div className="terminal-toolbar terminal-keys">
-      <button disabled={!selected || !connected} onClick={() => terminal.current?.focus()}>คีย์บอร์ด</button>
+      <button disabled={!selected || !connected} onClick={() => openCodeSelected ? commandInput.current?.focus() : terminal.current?.focus()}>คีย์บอร์ด</button>
       {([['Ctrl+C', '\x03'], ['Tab', '\t'], ['Esc', '\x1b'], ['↑', '\x1b[A'], ['↓', '\x1b[B'], ['←', '\x1b[D'], ['→', '\x1b[C']] as const).map(([label, data]) =>
         <button key={label} disabled={!selected || !connected} onClick={() => send(data)}>{label}</button>)}
     </div>
-    <form className="terminal-toolbar" onSubmit={event => { event.preventDefault(); if (command.trim()) { send(command + '\r'); setCommand(''); } }}>
-      <input className="terminal-command-input" aria-label="คำสั่ง Terminal" placeholder="คำสั่ง" value={command} onChange={event => setCommand(event.target.value)} autoCapitalize="none" autoCorrect="off" spellCheck={false} disabled={!selected || !connected} />
-      <button disabled={!selected || !connected || !command.trim()}>รัน ↵</button>
+    <form className="terminal-toolbar" onSubmit={event => { event.preventDefault(); submitCommand(); }}>
+      <input ref={commandInput} className="terminal-command-input"
+        aria-label={openCodeSelected ? 'ข้อความถึง OpenCode' : 'คำสั่ง Terminal'}
+        placeholder={openCodeSelected ? 'พิมพ์ข้อความถึง OpenCode' : 'คำสั่ง'} value={command}
+        onChange={event => setCommand(event.target.value)} autoCapitalize="none" autoCorrect="off" spellCheck={false} disabled={!selected || !connected} />
+      <button disabled={!selected || !connected || (!openCodeSelected && !command.trim())}>{openCodeSelected ? 'ส่ง ↵' : 'รัน ↵'}</button>
     </form>
       </section>
     </div>
