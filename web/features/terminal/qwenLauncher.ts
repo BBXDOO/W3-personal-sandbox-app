@@ -10,20 +10,22 @@ fi`;
 // Replace the login shell so its exit status reflects the model server's lifetime.
 // Single-quote the script as one bash argument, including its embedded quotes.
 export const QWEN_COMMAND = `exec bash -c '${QWEN_SCRIPT.replace(/'/g, "'\\''")}'\r`;
+export const OPENCODE_COMMAND = 'exec proot-distro login debian -- bash -lc \'exec "$HOME/.opencode/bin/opencode"\'\r';
+export const OPENCODE_SESSION_KEY = 'w3-terminal-opencode-session';
 export const QWEN_SESSION_KEY = 'w3-terminal-qwen-session';
-export interface QwenSession { id: string; cwd: string; exitCode: number | null; }
+export interface ProgramSession { id: string; cwd: string; exitCode: number | null; }
 
-export async function qwenSession(existingId: string | null, cols: number, rows: number): Promise<{
-  session: QwenSession; sessions: QwenSession[]; started: boolean;
+export async function programSession(existingId: string | null, cols: number, rows: number): Promise<{
+  session: ProgramSession; sessions: ProgramSession[]; started: boolean;
 }> {
-  const { sessions } = await terminalRequest<{ sessions: QwenSession[] }>('GET', '/sessions');
+  const { sessions } = await terminalRequest<{ sessions: ProgramSession[] }>('GET', '/sessions');
   const previous = sessions.find(session => session.id === existingId);
   if (previous?.exitCode === null) return { session: previous, sessions, started: false };
-  // A finished Qwen process has no work left to interrupt; release its slot.
+  // A finished process has no work left to interrupt; release its slot.
   if (previous) {
     await terminalRequest('POST', `/sessions/${previous.id}/close`);
     sessions.splice(sessions.indexOf(previous), 1);
   }
-  const session = await terminalRequest<QwenSession>('POST', '/sessions', { cwd: '~', cols: Math.max(2, cols), rows: Math.max(2, rows) });
+  const session = await terminalRequest<ProgramSession>('POST', '/sessions', { cwd: '~', cols: Math.max(2, cols), rows: Math.max(2, rows) });
   return { session, sessions: [...sessions, session], started: true };
 }

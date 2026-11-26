@@ -120,6 +120,7 @@ export default function QwenChat({ open, onClose, story, onStoryChange, fileCont
     setMessages([...base, ...pair]);
     setDraft(''); setBusy(true); setError(''); setNotice(''); setRetry(null); nearBottom.current = true;
     let raw = '';
+    let reachedLimit = false;
     const fail = (message: string) => { setBusy(false); setError(message); setRetry({ text, base }); cancel.current = null; };
     try {
       cancel.current = streamChat(chatHistory(base, text.trim(), source, memory, task), (type, value) => {
@@ -128,9 +129,11 @@ export default function QwenChat({ open, onClose, story, onStoryChange, fileCont
           setMessages(current => current.map(item => item.id === assistantId ? { ...item, content: cleanReply(raw) } : item));
         } else if (type === 'done') {
           cancel.current = null;
-          if (!cleanReply(raw)) { fail('Qwen3 ยังไม่ได้ส่งคำตอบ กรุณาลองอีกครั้ง'); return; }
-          setMessages(current => current.map(item => item.id === assistantId ? { ...item, content: cleanReply(raw), complete: true } : item));
           const answer = cleanReply(raw);
+          if (!answer) { fail('Qwen3 ยังไม่ได้ส่งคำตอบ กรุณาลองอีกครั้ง'); return; }
+          setBusy(false);
+          if (reachedLimit) return;
+          setMessages(current => current.map(item => item.id === assistantId ? { ...item, content: answer, complete: true } : item));
           if (mode === 'rules') setProposal({ type: 'rules', body: answer });
           if (mode === 'resize' && board) {
             const size = answer.match(/^(\d{1,2})\s*[x×]\s*(\d{1,2})$/i);
@@ -141,9 +144,11 @@ export default function QwenChat({ open, onClose, story, onStoryChange, fileCont
           }
           const note = proposedMemory(raw);
           if (note && note !== memory) saveMemory(note);
-          setBusy(false);
         } else if (type === 'error') fail(value);
-        else if (type === 'context' || type === 'limit') setNotice(value);
+        else if (type === 'limit') {
+          reachedLimit = true;
+          setNotice(value);
+        } else if (type === 'context') setNotice(value);
       });
     } catch (failure) { fail(failure instanceof Error ? failure.message : String(failure)); }
   };

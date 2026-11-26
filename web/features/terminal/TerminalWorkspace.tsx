@@ -7,7 +7,7 @@ import RepositoryPane from './RepositoryPane';
 import QwenChat from './QwenChat';
 import type { StoryPack } from '../../types';
 import type { ChatSource } from './qwenChatClient';
-import { QWEN_COMMAND, QWEN_SESSION_KEY, qwenSession } from './qwenLauncher';
+import { OPENCODE_COMMAND, OPENCODE_SESSION_KEY, QWEN_COMMAND, QWEN_SESSION_KEY, programSession } from './qwenLauncher';
 
 const darkTerminal = { background: '#111714', foreground: '#e5f2e8', cursor: '#82d5b2', cursorAccent: '#111714' };
 const lightTerminal = { background: '#f5f7f4', foreground: '#14241d', cursor: '#14533f', cursorAccent: '#f5f7f4' };
@@ -180,20 +180,23 @@ export default function TerminalWorkspace({ story, onStoryChange }: { story?: St
     finally { setBusy(false); }
   };
 
-  const openQwen = async () => {
+  const launchingProgram = useRef(false);
+  const openProgram = async (key: string, command: string) => {
+    if (launchingProgram.current) return;
+    launchingProgram.current = true;
     setBusy(true);
     try {
       const screen = terminal.current!;
-      const result = await qwenSession(window.localStorage.getItem(QWEN_SESSION_KEY), screen.cols, screen.rows);
+      const result = await programSession(window.localStorage.getItem(key), screen.cols, screen.rows);
       // Remember before sending input, so a lost response cannot cause another
       // launch in the same shell when the user taps again.
-      window.localStorage.setItem(QWEN_SESSION_KEY, result.session.id);
+      window.localStorage.setItem(key, result.session.id);
       setSessions(result.sessions);
       setSelected(result.session.id);
       setMessage('');
-      if (result.started) await terminalRequest('POST', `/sessions/${result.session.id}/input`, { data: QWEN_COMMAND });
+      if (result.started) await terminalRequest('POST', `/sessions/${result.session.id}/input`, { data: command });
     } catch (error) { report(error); }
-    finally { setBusy(false); }
+    finally { launchingProgram.current = false; setBusy(false); }
   };
 
   const closeSession = async () => {
@@ -215,11 +218,12 @@ export default function TerminalWorkspace({ story, onStoryChange }: { story?: St
         title={connected ? 'เชื่อมต่อแล้ว' : 'ยังไม่เชื่อมต่อ'}>
         <span className={connected ? 'terminal-connected' : 'terminal-disconnected'} aria-hidden="true">●</span> เชื่อมต่อ
       </button>
-      <button disabled={!connected || busy} onClick={openQwen} title="เปิด Qwen3-1.7B ใน session แยก · 127.0.0.1:8080">เปิด Qwen3</button>
+      <button disabled={!connected || busy} onClick={() => void openProgram(QWEN_SESSION_KEY, QWEN_COMMAND)} title="เปิด Qwen3-1.7B ใน session แยก · 127.0.0.1:8080">เปิด Qwen3</button>
       <button onClick={() => setChatOpen(true)}>คุยกับ Qwen3</button>
+      <button type="button" disabled={!connected || busy} onClick={() => void openProgram(OPENCODE_SESSION_KEY, OPENCODE_COMMAND)}>opencode</button>
       {connected && <><select aria-label="Session" value={selected} onChange={event => setSelected(event.target.value)}>
         <option value="">เลือก session</option>
-        {sessions.map((session, index) => <option key={session.id} value={session.id}>{index + 1} · {window.localStorage?.getItem(QWEN_SESSION_KEY) === session.id ? 'Qwen3 · ' : ''}{session.cwd}</option>)}
+        {sessions.map((session, index) => <option key={session.id} value={session.id}>{index + 1} · {window.localStorage?.getItem(QWEN_SESSION_KEY) === session.id ? 'Qwen3 · ' : window.localStorage?.getItem(OPENCODE_SESSION_KEY) === session.id ? 'opencode · ' : ''}{session.cwd}</option>)}
       </select>
       <button disabled={!connected || busy} onClick={() => {
         setCwd(sessions.find(session => session.id === selected)?.cwd || '~');

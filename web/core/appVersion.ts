@@ -1,3 +1,3 @@
 // Release guard checks this against Android versionCode/versionName and the guide.
-export const APP_VERSION_CODE = 65;
-export const APP_VERSION_NAME = '0.65';
+export const APP_VERSION_CODE = 66;
+export const APP_VERSION_NAME = '0.66';
