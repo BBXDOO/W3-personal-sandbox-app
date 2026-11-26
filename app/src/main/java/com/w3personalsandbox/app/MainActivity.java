@@ -112,6 +112,9 @@ public class MainActivity extends Activity {
         @JavascriptInterface public void qwenCancel(String id) { qwenChatTransport.cancel(id); }
         @JavascriptInterface public String terminalStatus() { return terminalTransport.status(); }
         @JavascriptInterface public void prepareTerminal() { terminalTransport.prepare(); }
+        @JavascriptInterface public void openOpenCodeChat() {
+            runOnUiThread(() -> startActivity(new Intent(MainActivity.this, OpenCodeActivity.class)));
+        }
         @JavascriptInterface public void openTermux() { terminalTransport.openTermux(); }
         @JavascriptInterface public void copyTerminalText(String text) {
             runOnUiThread(() -> {

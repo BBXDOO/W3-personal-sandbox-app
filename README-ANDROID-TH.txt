@@ -1,4 +1,4 @@
-W3 Personal Sandbox — Android v67 (0.67)
+W3 Personal Sandbox — Android v68 (0.68)
 
 ฐานพัฒนารวมอยู่ในรีโป้ BBXDOO/W3-personal-sandbox-app
 ซอร์ส React/TypeScript อยู่ใน web/ และ Android project อยู่ที่ root

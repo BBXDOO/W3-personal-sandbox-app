@@ -13,6 +13,7 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <activity android:name=".OpenCodeActivity" android:exported="false" android:windowSoftInputMode="adjustResize" />
         <provider android:name=".UpdateApkProvider"
             android:authorities="com.w3personalsandbox.app.updates"
             android:exported="false" android:grantUriPermissions="true" />
