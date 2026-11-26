@@ -1,4 +1,4 @@
-import{r as M,j as _,e as Ls,g as Dn}from"./index-BU6d6iVe.js";/**
+import{r as M,j as _,e as Ls,g as Dn}from"./index-CjP2GkHW.js";/**
  * Copyright (c) 2014-2024 The xterm.js authors. All rights reserved.
  * @license MIT
  *

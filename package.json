@@ -1,7 +1,7 @@
 {
   "name": "w3-personal-sandbox",
   "private": true,
-  "version": "0.68.0",
+  "version": "0.69.0",
   "scripts": {
     "dev": "npm --prefix web run dev",
     "lint": "npm --prefix web run lint",
