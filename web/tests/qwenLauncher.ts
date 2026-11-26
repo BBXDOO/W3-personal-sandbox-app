@@ -3,7 +3,7 @@ import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync } from 'nod
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
-import { QWEN_COMMAND, qwenSession } from '../features/terminal/qwenLauncher';
+import { OPENCODE_COMMAND, QWEN_COMMAND, programSession } from '../features/terminal/qwenLauncher';
 
 // Run the exact command sent to the PTY with a fake model server. The real
 // model/llama-server stay on the user's device; this checks bash quoting/argv.
@@ -42,13 +42,14 @@ surface.AndroidBridge = { terminalRequest(id: string, method: string, path: stri
   else throw new Error(`Unexpected request ${path}`);
   surface.dispatchEvent(new CustomEvent('w3-terminal-response', { detail: { id, ok: true, body: result } }));
 } };
-const reused = await qwenSession('qwen-old', 80, 24);
+assert.equal(OPENCODE_COMMAND, 'exec proot-distro login debian -- bash -lc \'exec "$HOME/.opencode/bin/opencode"\'\r');
+const reused = await programSession('qwen-old', 80, 24);
 assert.equal(reused.started, false);
 assert.equal(reused.session.id, 'qwen-old');
 assert.equal(calls.length, 1, 'an active Qwen session must not receive another command');
 calls.length = 0;
 sessions[0].exitCode = 17;
-const restarted = await qwenSession('qwen-old', 1, 1);
+const restarted = await programSession('qwen-old', 1, 1);
 assert.equal(restarted.started, true);
 assert.deepEqual(restarted.sessions.map(session => session.id), ['work', 'qwen-new']);
 assert.deepEqual(calls.map(call => call.path), ['/sessions', '/sessions/qwen-old/close', '/sessions']);

@@ -12,6 +12,7 @@ assert.ok(!html.includes('terminal-setup'));
 assert.ok(!html.includes('โฟลเดอร์ใหม่ เช่น'));
 assert.ok(html.includes('เครื่องมือ Terminal'));
 assert.match(html, /<button[^>]*disabled=""[^>]*>เปิด Qwen3<\/button>/);
+assert.match(html, /<button[^>]*disabled=""[^>]*>opencode<\/button>/);
 const explorer = html.indexOf('Explorer รายการไฟล์รีโป้');
 const viewer = html.indexOf('พื้นที่เปิดดูไฟล์');
 const shell = html.indexOf('Command shell ด้านล่าง');
