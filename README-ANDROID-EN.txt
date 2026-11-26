@@ -1,4 +1,4 @@
-W3 Personal Sandbox v66 (0.66)
+W3 Personal Sandbox v67 (0.67)
 
 This repository contains the React/TypeScript source in web/ and the Android project at its root.
 Use Node.js 24, Python 3, JDK 17, Android SDK 35 and Gradle 8.9.
